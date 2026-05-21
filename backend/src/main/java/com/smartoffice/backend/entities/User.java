@@ -1,6 +1,7 @@
 package com.smartoffice.backend.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,7 +31,8 @@ public class User {
     @Column(name = "Password", nullable = false, length = 255)
     private String password;
 
-    @Column(name = "Phone", length = 20)
+    @Column(name = "Phone")
+    @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải bao gồm đúng 10 chữ số")
     private String phone;
 
     @Column(name = "Status", nullable = false, length = 30)
