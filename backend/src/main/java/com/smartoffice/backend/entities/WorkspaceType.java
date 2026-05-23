@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "WorkspaceTypes")
+@Table(name = "workspacetypes")
 @Data
 public class WorkspaceType {
     @Id

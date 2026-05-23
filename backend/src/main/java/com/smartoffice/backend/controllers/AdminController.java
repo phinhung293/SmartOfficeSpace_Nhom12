@@ -1,9 +1,12 @@
 package com.smartoffice.backend.controllers;
 
 import com.smartoffice.backend.common.ApiResponse;
+import com.smartoffice.backend.dto.admin.AdminAddUserRequest;
+import com.smartoffice.backend.dto.admin.AdminUpdateUserRequest;
 import com.smartoffice.backend.entities.User;
 import com.smartoffice.backend.repositories.UserRepository;
 import com.smartoffice.backend.services.UserService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,18 +18,33 @@ import java.util.List;
 public class AdminController {
 
     private final UserService userService;
-    private final UserRepository userRepository;
+
     @GetMapping("/users")
     public ApiResponse<List<User>> getUsers(@RequestParam(required = false) String role) {
-        if (role != null && !role.isEmpty()) {
-            return ApiResponse.success(userRepository.findByRole_RoleName(role));
-        }
-        return ApiResponse.success(userService.getAllUsers());
+        return ApiResponse.success(userService.getUsers(role));
+    }
+
+    @PostMapping("/users")
+    public ApiResponse<?> addUser(@RequestBody AdminAddUserRequest req) {
+        userService.addUser(req.getName(), req.getEmail(), req.getPhone(), req.getStatus());
+        return ApiResponse.success("Thêm người dùng mới thành công!");
+    }
+
+    @PutMapping("/users/{id}")
+    public ApiResponse<?> updateUser(@PathVariable Integer id, @RequestBody AdminUpdateUserRequest req) {
+        userService.updateUserInfo(id, req.getName(), req.getPhone(), req.getStatus());
+        return ApiResponse.success("Cập nhật thông tin người dùng thành công!");
     }
 
     @PutMapping("/users/{id}/toggle")
-    public ApiResponse<String> toggleStatus(@PathVariable Integer id) {
+    public ApiResponse<?> toggleStatus(@PathVariable Integer id) {
         userService.toggleUserStatus(id);
-        return ApiResponse.success("Cập nhật trạng thái thành công");
+        return ApiResponse.success("Cập nhật trạng thái thành công!");
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ApiResponse<?> deleteUser(@PathVariable Integer id) {
+        userService.deleteUser(id);
+        return ApiResponse.success("Xóa người dùng thành công!");
     }
 }
