@@ -38,7 +38,7 @@ const Header = () => {
     const handleLogout = () => {
         localStorage.clear();
         setIsDropdownOpen(false);
-        navigate('/login');
+        navigate('/');
         window.location.reload();
     };
 

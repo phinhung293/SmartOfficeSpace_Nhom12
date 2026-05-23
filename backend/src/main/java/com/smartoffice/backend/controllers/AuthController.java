@@ -7,11 +7,9 @@ import com.smartoffice.backend.dto.user.RegisterRequest;
 import com.smartoffice.backend.services.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -35,6 +33,35 @@ public class AuthController {
         try {
             LoginResponse response = authService.login(request);
             return ApiResponse.success(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+    @PostMapping("/forgot-password/send-code")
+    public ApiResponse<String> sendCode(@RequestParam String email) {
+        try {
+            authService.sendResetCode(email);
+            return ApiResponse.success("Mã xác minh đã được gửi vào email!");
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @PostMapping("/forgot-password/verify-code")
+    public ApiResponse<String> verifyCode(@RequestParam String email, @RequestParam String code) {
+        try {
+            authService.verifyOtpCode(email, code);
+            return ApiResponse.success("Mã xác minh hợp lệ!");
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ApiResponse<String> resetPassword(@RequestParam String email, @RequestParam String code, @RequestParam String newPassword) {
+        try {
+            authService.resetPasswordWithCode(email, code, newPassword);
+            return ApiResponse.success("Đặt lại mật khẩu thành công!");
         } catch (RuntimeException e) {
             throw new RuntimeException(e.getMessage());
         }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Giữ lại 1 thẻ Link ở đây thôi
 import axiosInstance from '../api/axiosInstance';
 import '../pages/css/Auth.css';
 
@@ -16,7 +16,7 @@ const Login = () => {
         // Loại bỏ khoảng trắng thừa ở đầu/cuối dữ liệu nhập vào
         const loginData = {
             email: credentials.email.trim(),
-            password: credentials.password.trim()
+            password: credentials.password
         };
 
         try {
@@ -75,7 +75,12 @@ const Login = () => {
                     <div className="input-group">
                         <div className="label-row" style={{display: 'flex', justifyContent: 'space-between'}}>
                             <label>Mật khẩu</label>
-                            <a href="#" className="forgot-pass" style={{fontSize: '13px', color: '#0b57ff', textDecoration: 'none'}}>Quên mật khẩu?</a>
+                            
+                            {/* ĐÃ SỬA: Thay thẻ <a> thành thẻ <Link> để chuyển trang mượt mà không bị tải lại web */}
+                            <Link to="/forgot-password" className="forgot-pass" style={{fontSize: '13px', color: '#0b57ff', textDecoration: 'none'}}>
+                                Quên mật khẩu?
+                            </Link>
+
                         </div>
                         <div className="input-wrapper">
                             <i className="fa-solid fa-lock prefix-icon"></i>
