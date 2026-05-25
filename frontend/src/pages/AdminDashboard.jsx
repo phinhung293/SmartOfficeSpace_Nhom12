@@ -1,19 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './css/AdminDashboard.css';
+import {
+    adminGetAllBookings, adminCancelBooking, adminConfirmBooking, adminGetAllRooms
+} from '../api/bookingApi';
+import axiosInstance from '../api/axiosInstance';
 
+const vnd = (n) => Number(n || 0).toLocaleString('vi-VN');
+
+// ── Trạng thái booking ─────────────────────────────────────────────────────
+const STATUS_MAP = {
+    PENDING_PAYMENT: { label: 'Chờ thanh toán', color: '#b45309', bg: '#fef3c7' },
+    CONFIRMED:       { label: 'Đã xác nhận',    color: '#1a7f3c', bg: '#dcfce7' },
+    CANCELLED:       { label: 'Đã hủy',         color: '#ef4444', bg: '#fee2e2' },
+    EXPIRED:         { label: 'Hết hạn',         color: '#94a3b8', bg: '#f1f5f9' },
+};
+
+// ── Trạng thái phòng ───────────────────────────────────────────────────────
+const ROOM_STATUS_COLOR = {
+    'Còn trống':       { color: '#1a7f3c', bg: '#dcfce7' },
+    'Đang bận':        { color: '#2563eb', bg: '#dbeafe' },
+    'Đang hoạt động':  { color: '#1a7f3c', bg: '#dcfce7' },
+    'Ngừng hoạt động': { color: '#ef4444', bg: '#fee2e2' },
+    'Bảo trì':         { color: '#b45309', bg: '#fef3c7' },
+};
+
+const fmtTime = (dt) => {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
+const fmtDate = (dt) => {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleDateString('vi-VN');
+};
+
+const StatusBadge = ({ status }) => {
+    const s = STATUS_MAP[status] || { label: status, color: '#64748b', bg: '#f1f5f9' };
+    return (
+        <span style={{ background: s.bg, color: s.color, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {s.label}
+        </span>
+    );
+};
+
+const RoomStatusBadge = ({ status }) => {
+    const s = ROOM_STATUS_COLOR[status] || { color: '#64748b', bg: '#f1f5f9' };
+    return (
+        <span style={{ background: s.bg, color: s.color, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {status}
+        </span>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user'));
 
-    // Menu mặc định là 'tong-quan' để hiển thị toàn bộ biểu đồ thống kê khi vừa đăng nhập vào
     const [activeMenu, setActiveMenu] = useState('tong-quan');
-    
-    // Quản lý trạng thái đóng/mở các menu con dạng dropdown bên Sidebar
     const [openSubMenus, setOpenSubMenus] = useState({
         userMgmt: false,
         spaceMgmt: false,
-        bookingMgmt: false,
+        bookingMgmt: true,   // mở sẵn bookingMgmt
         paymentMgmt: false
     });
 
@@ -21,22 +71,29 @@ const AdminDashboard = () => {
         setOpenSubMenus(prev => ({ ...prev, [menuKey]: !prev[menuKey] }));
     };
 
+    const handleMenuClick = (menuKey, subKey) => {
+        if (subKey) {
+            toggleSubMenu(subKey);
+        } else {
+            setActiveMenu(menuKey);
+        }
+    };
+
     return (
         <div className="admin-main-body-layout">
-            
-            {/* ====== 1. THANH SIDEBAR MENU BÊN TRÁI (ĐẦY ĐỦ 6 MỤC CHUẨN MẪU) ====== */}
+
+            {/* ── SIDEBAR ──────────────────────────────────────────────── */}
             <aside className="admin-sidebar">
                 <ul className="sidebar-menu">
-                    
-                    {/* Mục 1: Tổng quan */}
-                    <li className={`menu-node ${activeMenu === 'tong-quan' ? 'active-node' : ''}`} onClick={() => setActiveMenu('tong-quan')}>
+
+                    <li className={`menu-node ${activeMenu === 'tong-quan' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('tong-quan')}>
                         <div className="menu-link-item">
                             <i className="fa-solid fa-house-chimney menu-icon"></i>
                             <span>Tổng quan</span>
                         </div>
                     </li>
 
-                    {/* Mục 2: Quản lý người dùng */}
                     <li className="menu-node">
                         <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('userMgmt')}>
                             <i className="fa-solid fa-user-group menu-icon"></i>
@@ -51,7 +108,6 @@ const AdminDashboard = () => {
                         )}
                     </li>
 
-                    {/* Mục 3: Quản lý không gian */}
                     <li className="menu-node">
                         <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('spaceMgmt')}>
                             <i className="fa-solid fa-cubes menu-icon"></i>
@@ -66,7 +122,6 @@ const AdminDashboard = () => {
                         )}
                     </li>
 
-                    {/* Mục 4: Quản lý đặt phòng */}
                     <li className="menu-node">
                         <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('bookingMgmt')}>
                             <i className="fa-regular fa-calendar-days menu-icon"></i>
@@ -75,17 +130,18 @@ const AdminDashboard = () => {
                         </div>
                         {openSubMenus.bookingMgmt && (
                             <ul className="sidebar-sub-menu">
-                                <li className={`sub-menu-item ${activeMenu === 'lich-su' ? 'active' : ''}`} onClick={() => setActiveMenu('lich-su')}>
+                                <li className={`sub-menu-item ${activeMenu === 'lich-su' ? 'active' : ''}`}
+                                    onClick={() => setActiveMenu('lich-su')}>
                                     <span className="dot-icon"></span> Lịch sử đặt phòng
                                 </li>
-                                <li className={`sub-menu-item ${activeMenu === 'dieu-phoi' ? 'active' : ''}`} onClick={() => setActiveMenu('dieu-phoi')}>
+                                <li className={`sub-menu-item ${activeMenu === 'dieu-phoi' ? 'active' : ''}`}
+                                    onClick={() => setActiveMenu('dieu-phoi')}>
                                     <span className="dot-icon"></span> Điều phối không gian
                                 </li>
                             </ul>
                         )}
                     </li>
 
-                    {/* Mục 5: Thanh toán & Hóa đơn */}
                     <li className="menu-node">
                         <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('paymentMgmt')}>
                             <i className="fa-solid fa-file-invoice-dollar menu-icon"></i>
@@ -100,8 +156,8 @@ const AdminDashboard = () => {
                         )}
                     </li>
 
-                    {/* Mục 6: Báo cáo thống kê */}
-                    <li className={`menu-node ${activeMenu === 'thong-ke' ? 'active-node' : ''}`} onClick={() => setActiveMenu('thong-ke')}>
+                    <li className={`menu-node ${activeMenu === 'thong-ke' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('thong-ke')}>
                         <div className="menu-link-item">
                             <i className="fa-solid fa-chart-line menu-icon"></i>
                             <span>Báo cáo thống kê</span>
@@ -110,144 +166,883 @@ const AdminDashboard = () => {
                 </ul>
             </aside>
 
-            {/* ====== 2. NỘI DUNG THỐNG KÊ CHI TIẾT BÊN PHẢI (ĐÃ XÓA BREADCRUMB) ====== */}
+            {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
             <main className="admin-main-content">
-                
-                {activeMenu === 'tong-quan' && (
-                    <div className="dashboard-view-container">
-                        
-                        {/* 4 Cards Thống kê đầu trang */}
-                        <div className="metrics-grid">
-                            <div className="metric-card">
-                                <div className="metric-icon blue-bg"><i className="fa-solid fa-users"></i></div>
-                                <div className="metric-info">
-                                    <p className="metric-label">Tổng người dùng</p>
-                                    <h3 className="metric-value">120</h3>
-                                </div>
-                            </div>
-                            <div className="metric-card">
-                                <div className="metric-icon purple-bg"><i className="fa-solid fa-building"></i></div>
-                                <div className="metric-info">
-                                    <p className="metric-label">Phòng đang sử dụng</p>
-                                    <h3 className="metric-value">15</h3>
-                                </div>
-                            </div>
-                            <div className="metric-card">
-                                <div className="metric-icon lightblue-bg"><i className="fa-regular fa-calendar-check"></i></div>
-                                <div className="metric-info">
-                                    <p className="metric-label">Đơn đặt hôm nay</p>
-                                    <h3 className="metric-value">28</h3>
-                                </div>
-                            </div>
-                            <div className="metric-card">
-                                <div className="metric-icon green-bg"><i className="fa-solid fa-dollar-sign"></i></div>
-                                <div className="metric-info">
-                                    <p className="metric-label">Doanh thu hôm nay</p>
-                                    <h3 className="metric-value">12.000.000đ</h3>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Hàng 2: Thông báo hệ thống & Tình trạng phòng hiện tại */}
-                        <div className="dashboard-row double-column">
-                            <div className="dashboard-card card-half">
-                                <div className="card-header-tabs">
-                                    <button className="tab-btn active">Quan trọng</button>
-                                    <button className="tab-btn">Thông báo</button>
-                                </div>
-                                <div className="card-body-list">
-                                    <div className="list-item-notify">
-                                        <div className="notify-title">Bảo trì hệ thống ngày 20/05/2026</div>
-                                        <div className="notify-time">18/04/2026 08:30</div>
-                                    </div>
-                                    <div className="list-item-notify">
-                                        <div className="notify-title">2 thanh toán thất bại</div>
-                                        <div className="notify-time">18/04/2026 08:15</div>
-                                    </div>
-                                    <div className="list-item-notify">
-                                        <div className="notify-title">Doanh thu hôm nay đạt 12.000.000đ</div>
-                                        <div className="notify-time">18/04/2026 08:05</div>
-                                    </div>
-                                    <a href="#" className="view-all-link">&gt;&gt;Xem tất cả</a>
-                                </div>
-                            </div>
-
-                            <div className="dashboard-card card-half">
-                                <div className="card-header-title">Tình trạng phòng hiện tại</div>
-                                <div className="card-body-table">
-                                    <table className="admin-dash-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Tên phòng</th><th>Loại phòng</th><th>Sức chứa</th><th>Giá (VND/giờ)</th><th>Trạng thái</th><th>Vị trí</th><th>Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td>Phòng A</td><td>Phòng họp</td><td>6 người</td><td>200.000</td><td><span className="badge badge-empty">Trống</span></td><td>Tầng 1</td><td><span className="action-txt">Xem</span></td></tr>
-                                            <tr><td>Phòng B</td><td>Phòng họp</td><td>8 người</td><td>250.000</td><td><span className="badge badge-busy">Đang sử dụng</span></td><td>Tầng 2</td><td><span className="action-txt">Xem</span></td></tr>
-                                            <tr><td>Phòng C</td><td>Phòng làm việc</td><td>2 người</td><td>120.000</td><td><span className="badge badge-booked">Đã đặt</span></td><td>Tầng 2</td><td><span className="action-txt">Xem</span></td></tr>
-                                            <tr><td>Bàn làm việc 1</td><td>Bàn chung</td><td>1 người</td><td>50.000</td><td><span className="badge badge-empty">Trống</span></td><td>Tầng 3</td><td><span className="action-txt">Xem</span></td></tr>
-                                        </tbody>
-                                    </table>
-                                    <a href="#" className="view-all-link">&gt;&gt;Xem tất cả</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Hàng 3: Đơn đặt phòng & Biểu đồ cột doanh thu giả lập */}
-                        <div className="dashboard-row double-column" style={{marginTop: '25px'}}>
-                            <div className="dashboard-card card-half">
-                                <div className="card-header-title">Đơn đặt phòng hôm nay</div>
-                                <div className="card-body-table">
-                                    <table className="admin-dash-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Booking ID</th><th>Người dùng</th><th>Phòng</th><th>Thời gian</th><th>Tổng tiền</th><th>Trạng thái</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td>B001</td><td>Nguyễn Văn A</td><td>Phòng A</td><td>18/04 09:00 - 11:00</td><td>400.000đ</td><td><span className="status-success">Đã thanh toán</span></td></tr>
-                                            <tr><td>B002</td><td>Nguyễn Văn B</td><td>Phòng B</td><td>18/04 10:00 - 12:00</td><td>500.000đ</td><td><span className="status-success">Đã thanh toán</span></td></tr>
-                                            <tr><td>B003</td><td>Nguyễn Văn C</td><td>Phòng C</td><td>18/04 13:00 - 15:00</td><td>300.000đ</td><td><span className="status-pending">Chờ thanh toán</span></td></tr>
-                                            <tr><td>B004</td><td>Nguyễn Văn D</td><td>Phòng D</td><td>18/04 14:00 - 16:00</td><td>200.000đ</td><td><span className="status-cancel">Đã hủy</span></td></tr>
-                                        </tbody>
-                                    </table>
-                                    <a href="#" className="view-all-link">&gt;&gt;Xem tất cả</a>
-                                </div>
-                            </div>
-
-                            <div className="dashboard-card card-half">
-                                <div className="card-header-title-row">
-                                    <div className="chart-title-left">
-                                        <span className="main-title-chart">THỐNG KÊ DOANH THU THEO THÁNG</span>
-                                        <span className="sub-title-chart">Doanh thu trong 4 tháng gần nhất</span>
-                                    </div>
-                                    <div className="chart-legend"><span className="legend-dot"></span> Doanh thu</div>
-                                </div>
-                                <div className="mock-chart-container">
-                                    <div className="chart-y-axis"><span>12Mđ</span><span>9Mđ</span><span>6Mđ</span><span>3Mđ</span><span>0đ</span></div>
-                                    <div className="chart-bars-area">
-                                        <div className="chart-bar-wrapper"><div className="actual-bar" style={{height: '55%'}}></div><span className="bar-label">Tháng 1</span></div>
-                                        <div className="chart-bar-wrapper"><div className="actual-bar" style={{height: '68%'}}></div><span className="bar-label">Tháng 2</span></div>
-                                        <div className="chart-bar-wrapper"><div className="actual-bar" style={{height: '48%'}}></div><span className="bar-label">Tháng 3</span></div>
-                                        <div className="chart-bar-wrapper"><div className="actual-bar" style={{height: '90%'}}></div><span className="bar-label">Tháng 4</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                )}
-
-                {activeMenu === 'dieu-phoi' && (
-                    <div className="admin-workspace-card" style={{background: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
-                        <h3 style={{marginBottom: '10px'}}>Khu vực điều phối không gian làm việc</h3>
-                        <p style={{color: '#64748b', fontStyle: 'italic', fontSize: '14px'}}>Đang tải danh sách sơ đồ phòng làm việc thực tế...</p>
-                    </div>
-                )}
+                {activeMenu === 'tong-quan' && <TongQuan onGoToLichSu={() => setActiveMenu('lich-su')} onGoToDieuPhoi={() => setActiveMenu('dieu-phoi')} />}
+                {activeMenu === 'lich-su'   && <AdminBookingManager />}
+                {activeMenu === 'dieu-phoi' && <AdminSpaceCoordinator />}
             </main>
-
         </div>
     );
 };
 
 export default AdminDashboard;
+
+/* ══════════════════════════════════════════════════════════════
+   TỔNG QUAN DASHBOARD — kết nối API thật
+══════════════════════════════════════════════════════════════ */
+function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
+    const [stats, setStats]         = useState(null);
+    const [donHomNay, setDonHomNay] = useState([]);
+    const [phongHienTai, setPhongHienTai] = useState([]);
+    const [loadingStats, setLoadingStats]   = useState(true);
+    const [loadingDon, setLoadingDon]       = useState(true);
+    const [loadingPhong, setLoadingPhong]   = useState(true);
+
+    useEffect(() => {
+        // 1. Số liệu thống kê tổng quan
+        axiosInstance.get('/admin/dashboard/tong-quan')
+            .then(r => setStats(r.data.data))
+            .catch(() => setStats({ tongNguoiDung: 0, donHomNay: 0, tongPhong: 0, doanhThuHomNay: 0 }))
+            .finally(() => setLoadingStats(false));
+
+        // 2. Đơn đặt phòng hôm nay
+        axiosInstance.get('/admin/dashboard/don-hom-nay', { params: { size: 5 } })
+            .then(r => setDonHomNay(r.data.data?.content || []))
+            .catch(() => setDonHomNay([]))
+            .finally(() => setLoadingDon(false));
+
+        // 3. Tình trạng phòng hiện tại
+        axiosInstance.get('/admin/dashboard/tinh-trang-phong')
+            .then(r => setPhongHienTai(r.data.data || []))
+            .catch(() => setPhongHienTai([]))
+            .finally(() => setLoadingPhong(false));
+    }, []);
+
+    const doanhThu = stats?.doanhThuHomNay
+        ? Number(stats.doanhThuHomNay).toLocaleString('vi-VN') + 'đ'
+        : '0đ';
+
+    return (
+        <div className="dashboard-view-container">
+
+            {/* 4 Cards Thống kê */}
+            <div className="metrics-grid">
+                <div className="metric-card">
+                    <div className="metric-icon blue-bg"><i className="fa-solid fa-users"></i></div>
+                    <div className="metric-info">
+                        <p className="metric-label">Tổng người dùng</p>
+                        <h3 className="metric-value">{loadingStats ? '…' : stats?.tongNguoiDung ?? 0}</h3>
+                    </div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-icon purple-bg"><i className="fa-solid fa-building"></i></div>
+                    <div className="metric-info">
+                        <p className="metric-label">Tổng số phòng</p>
+                        <h3 className="metric-value">{loadingStats ? '…' : stats?.tongPhong ?? 0}</h3>
+                    </div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-icon lightblue-bg"><i className="fa-regular fa-calendar-check"></i></div>
+                    <div className="metric-info">
+                        <p className="metric-label">Đơn đặt hôm nay</p>
+                        <h3 className="metric-value">{loadingStats ? '…' : stats?.donHomNay ?? 0}</h3>
+                    </div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-icon green-bg"><i className="fa-solid fa-dollar-sign"></i></div>
+                    <div className="metric-info">
+                        <p className="metric-label">Doanh thu hôm nay</p>
+                        <h3 className="metric-value" style={{ fontSize: 16 }}>{loadingStats ? '…' : doanhThu}</h3>
+                    </div>
+                </div>
+            </div>
+
+            {/* Hàng 2: Thông báo & Tình trạng phòng */}
+            <div className="dashboard-row double-column">
+                <div className="dashboard-card card-half">
+                    <div className="card-header-tabs">
+                        <button className="tab-btn active">Quan trọng</button>
+                        <button className="tab-btn">Thông báo</button>
+                    </div>
+                    <div className="card-body-list">
+                        <div className="list-item-notify">
+                            <div className="notify-title">Bảo trì hệ thống ngày 30/05/2026</div>
+                            <div className="notify-time">25/05/2026 08:30</div>
+                        </div>
+                        <div className="list-item-notify">
+                            <div className="notify-title">Kiểm tra các đơn chờ thanh toán quá hạn</div>
+                            <div className="notify-time">25/05/2026 08:15</div>
+                        </div>
+                        <div className="list-item-notify">
+                            <div className="notify-title">Doanh thu hôm nay: {doanhThu}</div>
+                            <div className="notify-time">25/05/2026 08:05</div>
+                        </div>
+                        <span className="view-all-link">&gt;&gt;Xem tất cả</span>
+                    </div>
+                </div>
+
+                <div className="dashboard-card card-half">
+                    <div className="card-header-title">Tình trạng phòng hiện tại</div>
+                    <div className="card-body-table">
+                        {loadingPhong ? (
+                            <div style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}>
+                                <i className="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        ) : (
+                            <table className="admin-dash-table">
+                                <thead>
+                                <tr>
+                                    <th>Tên phòng</th>
+                                    <th>Loại phòng</th>
+                                    <th>Sức chứa</th>
+                                    <th>Giá (VND/giờ)</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {phongHienTai.slice(0, 6).map(room => (
+                                    <tr key={room.roomId}>
+                                        <td>{room.name}</td>
+                                        <td>{room.workspaceType || '—'}</td>
+                                        <td>{room.capacity} người</td>
+                                        <td>{vnd(room.price)}</td>
+                                        <td><RoomStatusBadge status={room.roomStatus} /></td>
+                                    </tr>
+                                ))}
+                                {phongHienTai.length === 0 && (
+                                    <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: 16 }}>Không có dữ liệu</td></tr>
+                                )}
+                                </tbody>
+                            </table>
+                        )}
+                        <span className="view-all-link" onClick={onGoToDieuPhoi} style={{ cursor: 'pointer' }}>
+                            &gt;&gt;Xem tất cả
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Hàng 3: Đơn hôm nay & Biểu đồ */}
+            <div className="dashboard-row double-column" style={{ marginTop: 25 }}>
+                <div className="dashboard-card card-half">
+                    <div className="card-header-title">Đơn đặt phòng hôm nay</div>
+                    <div className="card-body-table">
+                        {loadingDon ? (
+                            <div style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}>
+                                <i className="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        ) : (
+                            <table className="admin-dash-table">
+                                <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Người dùng</th>
+                                    <th>Phòng</th>
+                                    <th>Thời gian</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {donHomNay.map(b => (
+                                    <tr key={b.bookingId}>
+                                        <td style={{ color: '#003db5', fontWeight: 600 }}>{b.bookingCode}</td>
+                                        <td>{b.userName}</td>
+                                        <td>{b.roomName}</td>
+                                        <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>
+                                            {fmtTime(b.startTime)} – {fmtTime(b.endTime)}
+                                        </td>
+                                        <td>{vnd(b.totalAmount)}đ</td>
+                                        <td><StatusBadge status={b.status} /></td>
+                                    </tr>
+                                ))}
+                                {donHomNay.length === 0 && (
+                                    <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 16 }}>Chưa có đơn hôm nay</td></tr>
+                                )}
+                                </tbody>
+                            </table>
+                        )}
+                        <span className="view-all-link" onClick={onGoToLichSu} style={{ cursor: 'pointer' }}>
+                            &gt;&gt;Xem tất cả
+                        </span>
+                    </div>
+                </div>
+
+                <div className="dashboard-card card-half">
+                    <div className="card-header-title-row">
+                        <div className="chart-title-left">
+                            <span className="main-title-chart">THỐNG KÊ DOANH THU THEO THÁNG</span>
+                            <span className="sub-title-chart">Doanh thu trong 4 tháng gần nhất</span>
+                        </div>
+                        <div className="chart-legend"><span className="legend-dot"></span> Doanh thu</div>
+                    </div>
+                    <div className="mock-chart-container">
+                        <div className="chart-y-axis">
+                            <span>12Mđ</span><span>9Mđ</span><span>6Mđ</span><span>3Mđ</span><span>0đ</span>
+                        </div>
+                        <div className="chart-bars-area">
+                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '55%' }}></div><span className="bar-label">Tháng 2</span></div>
+                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '68%' }}></div><span className="bar-label">Tháng 3</span></div>
+                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '48%' }}></div><span className="bar-label">Tháng 4</span></div>
+                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '90%' }}></div><span className="bar-label">Tháng 5</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LỊCH SỬ ĐẶT PHÒNG — giống hình mẫu (panel bên phải)
+══════════════════════════════════════════════════════════════ */
+function AdminBookingManager() {
+    const [bookings, setBookings]           = useState([]);
+    const [loading, setLoading]             = useState(true);
+    const [page, setPage]                   = useState(0);
+    const [totalPages, setTotalPages]       = useState(0);
+    const [totalItems, setTotalItems]       = useState(0);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [toast, setToast]                 = useState('');
+
+    // Filters — date range
+    const today = new Date().toISOString().split('T')[0];
+    const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const [dateFrom, setDateFrom]     = useState(firstOfMonth);
+    const [dateTo, setDateTo]         = useState(today);
+    const [roomFilter, setRoomFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const showToast = (msg, ok = true) => {
+        setToast({ msg, ok });
+        setTimeout(() => setToast(''), 3000);
+    };
+
+    const fetchBookings = useCallback(async () => {
+        setLoading(true);
+        try {
+            const params = { page, size: 10 };
+            if (statusFilter) params.status = statusFilter;
+            if (dateFrom)    params.date = dateFrom;
+            if (searchTerm)  params.userKeyword = searchTerm;
+            if (roomFilter)  params.roomKeyword = roomFilter;
+            const result = await adminGetAllBookings(params);
+            setBookings(result.content || []);
+            setTotalPages(result.totalPages || 0);
+            setTotalItems(result.totalElements || 0);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, statusFilter, dateFrom, searchTerm, roomFilter]);
+
+    useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+    const handleCancel = async (id) => {
+        if (!window.confirm('Bạn có chắc muốn hủy đơn này?')) return;
+        setActionLoading(true);
+        try {
+            await adminCancelBooking(id);
+            showToast('Đã hủy đơn thành công.');
+            setSelectedBooking(null);
+            fetchBookings();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Hủy thất bại.', false);
+        } finally { setActionLoading(false); }
+    };
+
+    const handleConfirm = async (id) => {
+        setActionLoading(true);
+        try {
+            await adminConfirmBooking(id);
+            showToast('Đã xác nhận thanh toán.');
+            // Cập nhật selectedBooking status
+            setSelectedBooking(prev => prev ? { ...prev, status: 'CONFIRMED' } : null);
+            fetchBookings();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Xác nhận thất bại.', false);
+        } finally { setActionLoading(false); }
+    };
+
+    const handleExportExcel = () => {
+        // Placeholder cho tính năng xuất Excel
+        alert('Tính năng xuất Excel đang được phát triển.');
+    };
+
+    // Panel chi tiết chiếm 35% bên phải — layout chia đôi khi có selectedBooking
+    return (
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+            {/* Toast */}
+            {toast && (
+                <div style={{
+                    position: 'fixed', top: 80, right: 24,
+                    background: toast.ok !== false ? '#1e293b' : '#ef4444',
+                    color: '#fff', padding: '12px 20px', borderRadius: 8, zIndex: 9999, fontSize: 14
+                }}>
+                    {toast.msg}
+                </div>
+            )}
+
+            {/* ── Bảng trái ─────────────────────────────────── */}
+            <div style={{ flex: 1, minWidth: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+
+                {/* Header */}
+                <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1e293b' }}>Lịch sử đặt phòng</h3>
+                        <button onClick={handleExportExcel}
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
+                            <i className="fa-solid fa-file-arrow-down" style={{ color: '#16a34a' }}></i> Xuất Excel
+                        </button>
+                    </div>
+
+                    {/* Filters — dạng giống hình mẫu */}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        {/* Date range */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, background: '#fff' }}>
+                            <i className="fa-regular fa-calendar" style={{ color: '#64748b' }}></i>
+                            <input type="date" value={dateFrom}
+                                   onChange={e => { setDateFrom(e.target.value); setPage(0); }}
+                                   style={{ border: 'none', outline: 'none', fontSize: 13, color: '#1e293b' }} />
+                            <span style={{ color: '#94a3b8' }}>–</span>
+                            <input type="date" value={dateTo}
+                                   onChange={e => { setDateTo(e.target.value); setPage(0); }}
+                                   style={{ border: 'none', outline: 'none', fontSize: 13, color: '#1e293b' }} />
+                        </div>
+
+                        <select value={roomFilter}
+                                onChange={e => { setRoomFilter(e.target.value); setPage(0); }}
+                                style={{ padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, minWidth: 150, color: roomFilter ? '#1e293b' : '#94a3b8' }}>
+                            <option value="">Tất cả không gian</option>
+                            <option value="View City">Phòng họp View City</option>
+                            <option value="Executive">Phòng họp Executive</option>
+                            <option value="làm việc riêng">Phòng làm việc riêng</option>
+                            <option value="chung">Bàn làm việc chung</option>
+                        </select>
+
+                        <select value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+                                style={{ padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, minWidth: 160, color: statusFilter ? '#1e293b' : '#94a3b8' }}>
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING_PAYMENT">Chờ thanh toán</option>
+                            <option value="CONFIRMED">Đã xác nhận</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                            <option value="EXPIRED">Hết hạn</option>
+                        </select>
+
+                        <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+                            <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: 13 }}></i>
+                            <input
+                                placeholder="Tìm mã đơn, khách hàng..."
+                                value={searchTerm}
+                                onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
+                                style={{ width: '100%', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table */}
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>
+                        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 24 }}></i>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                            <tr style={{ background: '#f8fafc', color: '#64748b', textAlign: 'left' }}>
+                                {['Mã đơn','Tên phòng','Khách hàng','Ngày đặt','Thời gian','Tổng tiền','Trạng thái','Thao tác'].map(h => (
+                                    <th key={h} style={{ padding: '10px 16px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
+                                ))}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {bookings.length === 0 ? (
+                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Không có dữ liệu</td></tr>
+                            ) : bookings.map(b => (
+                                <tr key={b.bookingId}
+                                    style={{ borderBottom: '1px solid #f1f5f9', background: selectedBooking?.bookingId === b.bookingId ? '#f0f7ff' : '' }}
+                                    onMouseEnter={e => { if (selectedBooking?.bookingId !== b.bookingId) e.currentTarget.style.background = '#f8fafc'; }}
+                                    onMouseLeave={e => { if (selectedBooking?.bookingId !== b.bookingId) e.currentTarget.style.background = ''; }}
+                                >
+                                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#003db5' }}>{b.bookingCode}</td>
+                                    <td style={{ padding: '12px 16px', fontWeight: 500 }}>{b.roomName}</td>
+                                    <td style={{ padding: '12px 16px', color: '#64748b' }}>{b.userName || '—'}</td>
+                                    <td style={{ padding: '12px 16px' }}>{fmtDate(b.startTime)}</td>
+                                    <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                                        {fmtTime(b.startTime)} – {fmtTime(b.endTime)}
+                                    </td>
+                                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{vnd(b.totalAmount)}đ</td>
+                                    <td style={{ padding: '12px 16px' }}><StatusBadge status={b.status} /></td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <button
+                                            onClick={() => setSelectedBooking(selectedBooking?.bookingId === b.bookingId ? null : b)}
+                                            style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 14, color: '#64748b' }}
+                                        >
+                                            <i className="fa-regular fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: '1px solid #e2e8f0', fontSize: 13, color: '#64748b' }}>
+                    <span>Hiện thị {bookings.length} trong tổng số {totalItems} đơn</span>
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => setPage(p => Math.max(0, p-1))} disabled={page === 0}
+                                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="fa-solid fa-chevron-left" style={{ fontSize: 11 }}></i>
+                            </button>
+                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => (
+                                <button key={i} onClick={() => setPage(i)}
+                                        style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid', borderColor: i === page ? '#003db5' : '#e2e8f0', background: i === page ? '#003db5' : '#fff', color: i === page ? '#fff' : '#1e293b', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button onClick={() => setPage(p => Math.min(totalPages-1, p+1))} disabled={page >= totalPages-1}
+                                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="fa-solid fa-chevron-right" style={{ fontSize: 11 }}></i>
+                            </button>
+                            <select value={10} style={{ padding: '2px 8px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13 }}>
+                                <option>10/trang</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Panel chi tiết bên phải (giống hình mẫu) ─── */}
+            {selectedBooking && (
+                <div style={{ width: 340, flexShrink: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    {/* Header panel */}
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Chi tiết đơn đặt phòng</span>
+                        <button onClick={() => setSelectedBooking(null)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>✕</button>
+                    </div>
+
+                    <div style={{ padding: '20px' }}>
+                        {/* Status badge */}
+                        <div style={{ marginBottom: 12 }}>
+                            <StatusBadge status={selectedBooking.status} />
+                        </div>
+
+                        {/* Mã đơn */}
+                        <div style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', marginBottom: 16 }}>
+                            {selectedBooking.bookingCode}
+                        </div>
+
+                        {/* Ảnh phòng */}
+                        {selectedBooking.roomImageUrl && (
+                            <img src={selectedBooking.roomImageUrl} alt={selectedBooking.roomName}
+                                 style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, marginBottom: 14 }} />
+                        )}
+
+                        {/* Tên phòng + loại */}
+                        <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b', marginBottom: 4 }}>
+                            {selectedBooking.roomName}
+                        </div>
+                        {selectedBooking.workspaceType && (
+                            <span style={{ background: '#2563eb', color: '#fff', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                                {selectedBooking.workspaceType}
+                            </span>
+                        )}
+
+                        {/* Thông tin chi tiết */}
+                        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="fa-regular fa-calendar"></i> Ngày
+                                </span>
+                                <span style={{ fontWeight: 700 }}>{fmtDate(selectedBooking.startTime)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="fa-regular fa-clock"></i> Thời gian
+                                </span>
+                                <span style={{ fontWeight: 700 }}>
+                                    {fmtTime(selectedBooking.startTime)} – {fmtTime(selectedBooking.endTime)}
+                                    {selectedBooking.durationHours ? ` (${selectedBooking.durationHours} giờ)` : ''}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <i className="fa-solid fa-user"></i> Khách hàng
+                                </span>
+                                <span style={{ fontWeight: 600 }}>{selectedBooking.userName}</span>
+                            </div>
+                        </div>
+
+                        {/* Tổng tiền */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+                            <span style={{ fontWeight: 600, fontSize: 14 }}>Tổng tiền</span>
+                            <span style={{ fontWeight: 800, fontSize: 18, color: '#003db5' }}>{vnd(selectedBooking.totalAmount)}đ</span>
+                        </div>
+
+                        {/* Nút action — giống hình */}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+                            {!['CANCELLED','EXPIRED'].includes(selectedBooking.status) && (
+                                <button onClick={() => handleCancel(selectedBooking.bookingId)} disabled={actionLoading}
+                                        style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#ef4444', border: '1.5px solid #ef4444', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                    Hủy đơn
+                                </button>
+                            )}
+                            {selectedBooking.status === 'PENDING_PAYMENT' && (
+                                <>
+                                    <button style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                        Chỉnh sửa
+                                    </button>
+                                    <button onClick={() => handleConfirm(selectedBooking.bookingId)} disabled={actionLoading}
+                                            style={{ width: '100%', padding: '10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13, marginTop: 2 }}>
+                                        Xác nhận thanh toán
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ĐIỀU PHỐI KHÔNG GIAN — giống hình mẫu (form edit bên phải)
+══════════════════════════════════════════════════════════════ */
+function AdminSpaceCoordinator() {
+    const [rooms, setRooms]       = useState([]);
+    const [loading, setLoading]   = useState(true);
+    const [editRoom, setEditRoom] = useState(null);
+    const [toast, setToast]       = useState('');
+    const [roomFilter, setRoomFilter]   = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [searchTerm, setSearchTerm]   = useState('');
+    const [page, setPage]         = useState(0);
+    const PAGE_SIZE = 10;
+
+    const showToast = (msg, ok = true) => {
+        setToast({ msg, ok });
+        setTimeout(() => setToast(''), 3000);
+    };
+
+    const fetchRooms = async () => {
+        setLoading(true);
+        try {
+            const data = await adminGetAllRooms();
+            setRooms(data || []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRooms();
+        const interval = setInterval(fetchRooms, 30_000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleSaveRoom = async () => {
+        if (!editRoom) return;
+        try {
+            await axiosInstance.put(`/admin/rooms/${editRoom.roomId}`, {
+                name: editRoom.name,
+                capacity: Number(editRoom.capacity),
+                price: Number(editRoom.price),
+                description: editRoom.description,
+                location: editRoom.location,
+                imageUrl: editRoom.imageUrl,
+            });
+            showToast('Đã cập nhật phòng thành công.');
+            setEditRoom(null);
+            fetchRooms();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Cập nhật thất bại.', false);
+        }
+    };
+
+    // Filter rooms
+    const filtered = rooms.filter(r => {
+        const matchRoom   = !roomFilter   || r.workspaceType?.includes(roomFilter);
+        const matchStatus = !statusFilter || r.roomStatus === statusFilter;
+        const matchSearch = !searchTerm   || r.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchRoom && matchStatus && matchSearch;
+    });
+
+    const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+    // Amenities (checkbox) — dùng array names
+    const ALL_AMENITIES = ['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống'];
+    const editAmenityNames = editRoom?.amenities?.map(a => a.name || a) || [];
+
+    const toggleAmenity = (name) => {
+        if (!editRoom) return;
+        const current = editRoom.amenities || [];
+        const exists = current.some(a => (a.name || a) === name);
+        setEditRoom({
+            ...editRoom,
+            amenities: exists
+                ? current.filter(a => (a.name || a) !== name)
+                : [...current, { name }]
+        });
+    };
+
+    return (
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+            {toast && (
+                <div style={{ position: 'fixed', top: 80, right: 24, background: toast.ok !== false ? '#1e293b' : '#ef4444', color: '#fff', padding: '12px 20px', borderRadius: 8, zIndex: 9999, fontSize: 14 }}>
+                    {toast.msg}
+                </div>
+            )}
+
+            {/* ── Bảng trái ─────────────────────────────────── */}
+            <div style={{ flex: 1, minWidth: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1e293b' }}>Điều phối không gian</h3>
+                        <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                            <i className="fa-solid fa-plus"></i> Thêm không gian
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <select value={roomFilter}
+                                onChange={e => { setRoomFilter(e.target.value); setPage(0); }}
+                                style={{ padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, minWidth: 150 }}>
+                            <option value="">Tất cả không gian</option>
+                            <option value="Phòng họp">Phòng họp</option>
+                            <option value="Phòng làm việc">Phòng làm việc</option>
+                            <option value="Coworking">Coworking</option>
+                        </select>
+                        <select value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+                                style={{ padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, minWidth: 150 }}>
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Còn trống">Còn trống</option>
+                            <option value="Đang bận">Đang bận</option>
+                            <option value="Bảo trì">Bảo trì</option>
+                        </select>
+                        <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+                            <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: 13 }}></i>
+                            <input placeholder="Tìm mã đơn, khách hàng..." value={searchTerm}
+                                   onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
+                                   style={{ width: '100%', paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                        </div>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>
+                        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 24 }}></i>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                            <tr style={{ background: '#f8fafc', color: '#64748b', textAlign: 'left' }}>
+                                {['Mã Phòng','Tên phòng','Loại không gian','Sức chứa','Giá / giờ','Trạng thái','Thao tác'].map(h => (
+                                    <th key={h} style={{ padding: '10px 16px', fontWeight: 600, borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
+                                ))}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {paginated.length === 0 ? (
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Không có phòng nào</td></tr>
+                            ) : paginated.map(room => (
+                                <tr key={room.roomId} style={{ borderBottom: '1px solid #f1f5f9', background: editRoom?.roomId === room.roomId ? '#f0f7ff' : '' }}>
+                                    <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 12 }}>
+                                        R{new Date().getFullYear().toString().slice(2)}{String(new Date().getMonth()+1).padStart(2,'0')}{String(new Date().getDate()).padStart(2,'0')}-{String(room.roomId).padStart(3,'0')}
+                                    </td>
+                                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            {room.imageUrl && (
+                                                <img src={room.imageUrl} alt={room.name}
+                                                     style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                                            )}
+                                            <span>{room.name}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <WorkspaceTypeBadge type={room.workspaceType} />
+                                    </td>
+                                    <td style={{ padding: '12px 16px' }}>{room.capacity} người</td>
+                                    <td style={{ padding: '12px 16px' }}>{vnd(room.price)}đ</td>
+                                    <td style={{ padding: '12px 16px' }}><RoomStatusBadge status={room.roomStatus} /></td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <button
+                                            onClick={() => setEditRoom(editRoom?.roomId === room.roomId ? null : { ...room })}
+                                            style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 14, color: '#64748b' }}>
+                                            <i className="fa-regular fa-pen-to-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: '1px solid #e2e8f0', fontSize: 13, color: '#64748b' }}>
+                    <span>Hiện thị {paginated.length} trong tổng số {filtered.length} không gian</span>
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => setPage(p => Math.max(0, p-1))} disabled={page === 0}
+                                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="fa-solid fa-chevron-left" style={{ fontSize: 11 }}></i>
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => (
+                                <button key={i} onClick={() => setPage(i)}
+                                        style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid', borderColor: i === page ? '#003db5' : '#e2e8f0', background: i === page ? '#003db5' : '#fff', color: i === page ? '#fff' : '#1e293b', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button onClick={() => setPage(p => Math.min(totalPages-1, p+1))} disabled={page >= totalPages-1}
+                                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="fa-solid fa-chevron-right" style={{ fontSize: 11 }}></i>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Panel edit bên phải (giống hình) ─────────── */}
+            {editRoom && (
+                <div style={{ width: 340, flexShrink: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Chỉnh sửa không gian</span>
+                        <button onClick={() => setEditRoom(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>✕</button>
+                    </div>
+
+                    <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                        {/* Ảnh phòng */}
+                        <div style={{ position: 'relative' }}>
+                            {editRoom.imageUrl ? (
+                                <img src={editRoom.imageUrl} alt={editRoom.name}
+                                     style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10 }} />
+                            ) : (
+                                <div style={{ width: '100%', height: 130, background: '#f1f5f9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                    <i className="fa-regular fa-image" style={{ fontSize: 28 }}></i>
+                                </div>
+                            )}
+                            <button style={{ position: 'absolute', top: 8, right: 8, padding: '5px 10px', background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                                Thay đổi ảnh
+                            </button>
+                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>JPG, PNG tối đa 2MB</div>
+                        </div>
+
+                        {/* Tên phòng */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Tên phòng</label>
+                            <input value={editRoom.name}
+                                   onChange={e => setEditRoom({ ...editRoom, name: e.target.value })}
+                                   style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                        </div>
+
+                        {/* Loại không gian */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Loại không gian</label>
+                            <select value={editRoom.workspaceType || ''}
+                                    onChange={e => setEditRoom({ ...editRoom, workspaceType: e.target.value })}
+                                    style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                                <option value="Phòng họp">Phòng họp</option>
+                                <option value="Phòng làm việc">Phòng làm việc</option>
+                                <option value="Coworking">Coworking</option>
+                            </select>
+                        </div>
+
+                        {/* Sức chứa + Giá */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Sức chứa</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input type="number" value={editRoom.capacity}
+                                           onChange={e => setEditRoom({ ...editRoom, capacity: e.target.value })}
+                                           style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#94a3b8' }}>người</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giá theo giờ</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input type="number" value={editRoom.price}
+                                           onChange={e => setEditRoom({ ...editRoom, price: e.target.value })}
+                                           style={{ width: '100%', padding: '9px 22px 9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#94a3b8' }}>đ</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Trạng thái */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Trạng thái</label>
+                            <select value={editRoom.roomStatus || ''}
+                                    onChange={e => setEditRoom({ ...editRoom, roomStatus: e.target.value })}
+                                    style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                                <option value="Còn trống">Còn trống</option>
+                                <option value="Đang bận">Đang bận</option>
+                                <option value="Bảo trì">Bảo trì</option>
+                            </select>
+                        </div>
+
+                        {/* Tiện ích */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Tiện ích</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                {ALL_AMENITIES.map(name => (
+                                    <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                                        <input type="checkbox"
+                                               checked={editAmenityNames.includes(name)}
+                                               onChange={() => toggleAmenity(name)}
+                                               style={{ accentColor: '#003db5', width: 15, height: 15 }} />
+                                        {name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mô tả */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Mô tả</label>
+                            <textarea value={editRoom.description || ''}
+                                      onChange={e => setEditRoom({ ...editRoom, description: e.target.value })}
+                                      rows={3}
+                                      style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }} />
+                        </div>
+
+                        {/* Nút action */}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setEditRoom(null)}
+                                    style={{ flex: 1, padding: '10px', background: '#fff', color: '#ef4444', border: '1.5px solid #ef4444', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                Hủy
+                            </button>
+                            <button onClick={handleSaveRoom}
+                                    style={{ flex: 2, padding: '10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Badge loại không gian màu theo loại
+function WorkspaceTypeBadge({ type }) {
+    const colorMap = {
+        'Phòng họp':      { color: '#2563eb', bg: '#dbeafe' },
+        'Phòng làm việc': { color: '#7c3aed', bg: '#ede9fe' },
+        'Coworking':      { color: '#d97706', bg: '#fef3c7' },
+    };
+    const s = colorMap[type] || { color: '#64748b', bg: '#f1f5f9' };
+    return (
+        <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+            {type || '—'}
+        </span>
+    );
+}

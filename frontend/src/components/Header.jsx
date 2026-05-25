@@ -5,10 +5,10 @@ import logoImg from '../assets/logo.png';
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
-    
+
     const user = JSON.parse(localStorage.getItem('user'));
     const role = user?.role || "";
 
@@ -60,9 +60,9 @@ const Header = () => {
                 <nav className={`navbar ${isMenuOpen ? "active" : ""}`}>
                     {role !== 'ADMIN' ? (
                         navItems.map((item, index) => (
-                            <NavLink 
-                                to={item.path} 
-                                key={index} 
+                            <NavLink
+                                to={item.path}
+                                key={index}
                                 onClick={() => setIsMenuOpen(false)}
                                 // Tự động thêm class "active" khi trang đó được chọn
                                 className={({ isActive }) => isActive ? "nav-item-link active" : "nav-item-link"}
@@ -119,7 +119,7 @@ const Header = () => {
                                                 <div className="dropdown-item" onClick={() => { navigate('/profile'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-id-card"></i> Thông tin cá nhân
                                                 </div>
-                                                <div className="dropdown-item" onClick={() => { navigate('/booking-history'); setIsDropdownOpen(false); }}>
+                                                <div className="dropdown-item" onClick={() => { navigate('/my-bookings'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-calendar-check"></i> Lịch sử đặt phòng
                                                 </div>
                                                 <div className="dropdown-item" onClick={() => { navigate('/invoices'); setIsDropdownOpen(false); }}>
