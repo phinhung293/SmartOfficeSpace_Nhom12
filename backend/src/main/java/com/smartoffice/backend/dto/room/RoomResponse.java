@@ -1,4 +1,4 @@
-package com.smartoffice.backend.dto.response;
+package com.smartoffice.backend.dto.room;
 
 import lombok.Data;
 

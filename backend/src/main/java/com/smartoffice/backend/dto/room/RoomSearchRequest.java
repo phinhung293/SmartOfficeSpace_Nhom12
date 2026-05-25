@@ -1,4 +1,4 @@
-package com.smartoffice.backend.dto.request;
+package com.smartoffice.backend.dto.room;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;

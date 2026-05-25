@@ -375,6 +375,10 @@ export default function Spaces() {
                         <div className="sp-iw">
                             <i className="fa-regular fa-calendar sp-ii"></i>
                             <input type="date" className="sp-input has-icon"
+                                   min={(() => {
+                                       const today = new Date();const yyyy = today.getFullYear();const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                       const dd = String(today.getDate()).padStart(2, '0');
+                                       return `${yyyy}-${mm}-${dd}`;})()}
                                    value={search.date}
                                    onChange={e => setSearch(s => ({ ...s, date: e.target.value }))} />
                         </div>

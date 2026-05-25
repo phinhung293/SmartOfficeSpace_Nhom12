@@ -264,18 +264,18 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             // P12: Coworking, đang bận
-            roomRepository.save(buildRoom(
-                    "Coworking Sáng H4", coworking, dangBan,
-                    50, new BigDecimal("70000"),
-                    "Tầng 01 - Khu C",
-                    LocalTime.of(6,0), LocalTime.of(22,0),
-                    "Không gian coworking lớn nhất tòa nhà với đầy đủ tiện nghi. Phòng in ấn, " +
-                            "tủ cá nhân, khu vực thư giãn. Phù hợp cho cộng đồng làm việc năng động.",
-                    "https://images.unsplash.com/photo-1497366858526-0766e2d73896?w=800",
-                    List.of(mayLanh, nuocUong, wifi, whiteboard, baiXe)
-            ));
-
-            System.out.println(">> [DataSeeder] Đã khởi tạo 12 phòng mẫu thành công!");
+//            roomRepository.save(buildRoom(
+//                    "Coworking Sáng H4", coworking, dangBan,
+//                    50, new BigDecimal("70000"),
+//                    "Tầng 01 - Khu C",
+//                    LocalTime.of(6,0), LocalTime.of(22,0),
+//                    "Không gian coworking lớn nhất tòa nhà với đầy đủ tiện nghi. Phòng in ấn, " +
+//                            "tủ cá nhân, khu vực thư giãn. Phù hợp cho cộng đồng làm việc năng động.",
+//                    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&auto=format&fit=crop",
+//                    List.of(mayLanh, nuocUong, wifi, whiteboard, baiXe)
+//            ));
+//
+//            System.out.println(">> [DataSeeder] Đã khởi tạo 12 phòng mẫu thành công!");
         }
     }
 

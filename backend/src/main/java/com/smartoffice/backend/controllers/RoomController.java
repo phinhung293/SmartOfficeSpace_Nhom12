@@ -1,8 +1,7 @@
 package com.smartoffice.backend.controllers;
 
-import com.smartoffice.backend.dto.request.RoomSearchRequest;
-import com.smartoffice.backend.dto.response.RoomResponse;
-import com.smartoffice.backend.entities.Room;
+import com.smartoffice.backend.dto.room.RoomSearchRequest;
+import com.smartoffice.backend.dto.room.RoomResponse;
 import com.smartoffice.backend.services.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
