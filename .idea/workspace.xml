@@ -4,55 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4a6c1574-1d9d-4514-81a4-1df5385d2aca" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/ModelMapperConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/controllers/RoomController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/request/RoomSearchRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/response/RoomResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/AmenityRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/BookingRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/RoomRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/RoomStatusRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/WorkspaceTypeRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/RoomService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/impl/RoomServiceImpl.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/specifications/RoomSpecification.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/api/roomApi.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Booking.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Roomdetail.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Spaces.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/css/Booking.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/css/Roomdetail.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/css/Spaces.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/DataInitializer.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/DataInitializer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Amenity.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Amenity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Booking.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/BookingStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/BookingStatus.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Invoice.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Invoice.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Notification.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Notification.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Payment.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Payment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/PaymentMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/PaymentMethod.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/PaymentStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/PaymentStatus.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Room.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Room.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/RoomStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/RoomStatus.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/User.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/WorkspaceType.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/WorkspaceType.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/assets/hero.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/assets/react.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login.jsx" afterDir="false" />
-    </list>
+    <list default="true" id="4a6c1574-1d9d-4514-81a4-1df5385d2aca" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -203,7 +155,7 @@
       <updated>1778584104162</updated>
       <workItem from="1778584105179" duration="33000" />
       <workItem from="1779684379641" duration="325000" />
-      <workItem from="1779691411969" duration="3281000" />
+      <workItem from="1779691411969" duration="4114000" />
     </task>
     <servers />
   </component>
