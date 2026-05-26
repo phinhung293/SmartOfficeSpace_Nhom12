@@ -48,7 +48,7 @@ public class Room {
 
     @ManyToMany
     @JoinTable(
-            name = "RoomAmenities",
+            name = "roomamenities", // Đây chính là bảng số 10 trong SQL của bạn
             joinColumns = @JoinColumn(name = "RoomID"),
             inverseJoinColumns = @JoinColumn(name = "AmenityID")
     )

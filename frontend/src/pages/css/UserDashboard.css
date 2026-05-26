@@ -1,0 +1,221 @@
+.user-dashboard-container {
+    display: flex;
+    max-width: 1200px;
+    margin: 40px auto;
+    gap: 30px; /* Thu hẹp khoảng cách giữa 2 khung lại một chút */
+    font-family: 'Arial', sans-serif;
+}
+
+/* --- TRÁI: KHUNG SIDEBAR MÀU TRẮNG --- */
+.dashboard-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background-color: #ffffff; /* Nền trắng */
+    padding: 25px 20px;
+    border-radius: 5px; /* Bo góc */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Đổ bóng nhẹ tạo viền mờ */
+}
+
+/* --- PHẢI: KHUNG NỘI DUNG CHÍNH MÀU TRẮNG --- */
+.dashboard-content {
+    flex-grow: 1;
+    background-color: #ffffff; /* Nền trắng */
+    padding: 35px 40px;
+    border-radius: 12px; /* Bo góc */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Đổ bóng nhẹ */
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Tạo khoảng cách giữa các menu */
+}
+
+.menu-item {
+    padding: 14px 20px;
+    text-decoration: none;
+    color: #4b5563; /* Màu xám đậm */
+    font-weight: 500;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Khoảng cách giữa Icon và Text */
+    transition: all 0.2s ease;
+}
+
+.menu-item i {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-item:hover {
+    background-color: #f3f4f6; /* Xám nhạt khi lia chuột */
+}
+
+/* HIỆU ỨNG NHẤN VÀO GIỐNG ADMIN DASHBOARD */
+.menu-item.active {
+    background-color: #f0f5ff; /* Nền xanh nhạt */
+    color: #0b57ff; /* Chữ và Icon màu xanh đậm */
+    font-weight: 600;
+}
+
+.support-box {
+    background-color: #e0e7ff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 100px;
+}
+
+.support-icon {
+    color: #0b57ff;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.support-box p {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.support-btn {
+    border: 1px solid #0b57ff;
+    background: transparent;
+    color: #0b57ff;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- PHẢI: NỘI DUNG CHÍNH --- */
+.dashboard-content {
+    flex-grow: 1;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+/* --- BỐ CỤC PROFILE INFO --- */
+.profile-grid {
+    display: flex;
+    gap: 60px;
+}
+
+.avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 200px;
+}
+
+.avatar-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 50px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hint-text {
+    font-size: 12px;
+    color: #888;
+    margin-top: 10px;
+}
+
+.form-section {
+    flex-grow: 1;
+    max-width: 600px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-row label {
+    width: 150px;
+    font-weight: 500;
+    color: #555;
+}
+
+.info-value {
+    flex-grow: 1;
+    color: #222;
+    font-weight: 500;
+}
+
+.form-input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    outline-color: #0b57ff;
+}
+
+/* NÚT BẤM */
+.mt-3 { margin-top: 15px; }
+.mt-4 { margin-top: 25px; }
+
+.action-buttons-vertical {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+.action-buttons-horizontal {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-primary {
+    background-color: #0b57ff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    min-width: 140px;
+}
+
+.btn-outline-primary {
+    border: 1px solid #0b57ff;
+    background: transparent;
+    color: #0b57ff;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-outline-secondary {
+    border: 1px solid #ccc;
+    background: transparent;
+    color: #555;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}

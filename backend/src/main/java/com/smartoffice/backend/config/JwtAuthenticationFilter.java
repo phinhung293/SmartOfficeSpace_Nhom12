@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     // Tạo danh sách quyền từ Role trong Token
                     // Lưu ý: Spring Security yêu cầu quyền phải có tiền tố "ROLE_"
-                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
 
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             email, null, Collections.singletonList(authority));

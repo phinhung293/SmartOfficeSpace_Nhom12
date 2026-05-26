@@ -34,10 +34,23 @@ public class User {
     @Column(name = "Phone")
     @Pattern(regexp = "^\\d{10}$", message = "Số điện thoại phải bao gồm đúng 10 chữ số")
     private String phone;
+    @Column(name = "DateOfBirth")
+    private java.time.LocalDate dateOfBirth; // Ngày sinh (Dùng LocalDate để lưu ngày chuẩn)
 
+    @Column(name = "Gender", length = 10)
+    private String gender; // Giới tính (Nam, Nữ, Khác)
+
+    @Lob // Đánh dấu đây là dữ liệu lớn (Large Object)
+    @Column(name = "Avatar", columnDefinition = "LONGTEXT")
+    private String avatar; // Đường dẫn lưu ảnh đại diện (URL hoặc tên file)
     @Column(name = "Status", nullable = false, length = 30)
     private String status;
 
+    @Column(name = "verification_code")
+    private String verificationCode;
+
+    @Column(name = "code_expiry")
+    private LocalDateTime codeExpiry;
     @Column(name = "CreatedAt", updatable = false)
     private LocalDateTime createdAt;
 
