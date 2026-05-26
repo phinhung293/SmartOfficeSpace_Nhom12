@@ -1,0 +1,181 @@
+/* ══════════════════════════════════════════════════
+   BOOKING PAGE  –  Smart Office Space
+   ══════════════════════════════════════════════════ */
+.bk-page    { background:#f5f6fb; min-height:100vh; }
+.bk-loading { text-align:center; padding:80px; font-size:18px; color:#888; }
+
+/* Breadcrumb */
+.bk-breadcrumb { background:#eef1f7; padding:12px 60px; font-size:15px; color:#555; }
+.bk-bc-a   { cursor:pointer; color:#333; }
+.bk-bc-a:hover { text-decoration:underline; }
+.bk-bc-sep { margin:0 6px; color:#aaa; }
+
+/* Container */
+.bk-container { max-width:1200px; margin:0 auto; padding:28px 24px 60px; }
+.bk-title { font-size:32px; font-weight:700; color:#111; margin-bottom:20px; }
+
+/* ── Two-column layout ── */
+.bk-layout { display:grid; grid-template-columns:1fr 380px; gap:24px; align-items:start; }
+
+/* ════════════════════ LEFT PANEL ════════════════════ */
+.bk-left { display:flex; flex-direction:column; gap:18px; }
+
+/* Room header card */
+.bk-room-header {
+    background:#fff; border-radius:14px; padding:22px 24px;
+    display:flex; gap:20px; align-items:flex-start;
+    box-shadow:0 2px 12px rgba(0,0,0,.07); flex-wrap:wrap;
+}
+.bk-room-img-wrap {
+    width:100px; height:72px; border-radius:10px; overflow:hidden; flex-shrink:0;
+}
+.bk-room-img    { width:100%; height:100%; object-fit:cover; display:block; }
+.bk-room-img-ph { width:100%; height:100%; background:#bfcfe8; }
+
+.bk-room-meta { flex:1; display:flex; flex-direction:column; gap:5px; }
+.bk-room-name { font-size:18px; font-weight:700; color:#111; }
+.bk-room-tag  {
+    display:inline-block; padding:2px 10px; border-radius:6px;
+    font-size:12px; font-weight:600; background:#dfe7ff; color:#003db5; width:fit-content;
+}
+.bk-room-detail { font-size:13px; color:#555; }
+.bk-room-detail i { margin-right:6px; color:#003db5; }
+.bk-view-link {
+    background:transparent; border:none; color:#003db5; font-size:13px;
+    font-weight:600; cursor:pointer; padding:0; text-align:left; margin-top:4px;
+}
+.bk-view-link:hover { text-decoration:underline; }
+
+/* Date picker */
+.bk-date-wrap { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+.bk-date-label { font-size:14px; font-weight:600; color:#333; }
+.bk-date-input-wrap { position:relative; }
+.bk-date-icon {
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    color:#888; font-size:14px; pointer-events:none;
+}
+.bk-date-input {
+    height:42px; border:1px solid #d8dde6; border-radius:9px;
+    padding:0 14px 0 34px; font-size:14px; color:#333;
+    background:#fff; outline:none; transition:border-color .2s; min-width:160px;
+}
+.bk-date-input:focus { border-color:#003db5; }
+
+/* Slot picker card */
+.bk-slots-wrap {
+    background:#fff; border-radius:14px; padding:22px 24px;
+    box-shadow:0 2px 12px rgba(0,0,0,.07);
+}
+.bk-slots-title { font-size:16px; font-weight:700; color:#111; margin-bottom:16px; }
+.bk-slots-grid  {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
+    gap:10px; margin-bottom:14px;
+}
+
+/* Individual slot */
+.bk-slot {
+    border:1.5px solid #d8dde6; border-radius:10px; padding:10px 12px;
+    cursor:pointer; transition:all .18s; background:#fff; text-align:center;
+}
+.bk-slot:hover:not(.slot-booked):not(.slot-maint) {
+    border-color:#003db5; background:#eef2ff;
+}
+.slot-sel   { background:#003db5; border-color:#003db5; color:#fff; }
+.slot-booked { background:#f7f7f7; border-color:#e0e0e0; cursor:not-allowed; color:#bbb; }
+.slot-maint  { background:#fff8f0; border-color:#ffc580; cursor:not-allowed; color:#b56a00; }
+
+.bk-slot-time { font-size:13px; font-weight:600; }
+.slot-sel .bk-slot-time { color:#fff; }
+.bk-slot-sub  { font-size:12px; margin-top:4px; color:#666; }
+.slot-sel .bk-slot-sub  { color:#cfe0ff; }
+
+.bk-hint { font-size:13px; color:#666; display:flex; align-items:center; gap:0; }
+
+/* ════════════════════ RIGHT PANEL ════════════════════ */
+.bk-right { position:sticky; top:90px; }
+.bk-summary {
+    background:#fff; border-radius:14px; padding:22px 24px;
+    box-shadow:0 2px 14px rgba(0,0,0,.09);
+    display:flex; flex-direction:column; gap:14px;
+}
+.bk-sum-title { font-size:18px; font-weight:700; color:#111; }
+.bk-sum-sub   { font-size:13px; color:#888; margin-top:-8px; }
+
+/* Room preview in summary */
+.bk-sum-room {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:14px; background:#f7f9ff; border-radius:10px;
+}
+.bk-sum-img-wrap {
+    width:80px; height:60px; border-radius:8px; overflow:hidden; flex-shrink:0;
+}
+.bk-sum-img    { width:100%; height:100%; object-fit:cover; display:block; }
+.bk-sum-img-ph { width:100%; height:100%; background:#bfcfe8; }
+.bk-sum-room-info { flex:1; display:flex; flex-direction:column; gap:4px; }
+.bk-sum-room-name { font-size:15px; font-weight:700; color:#111; }
+.bk-sum-tag {
+    display:inline-block; padding:2px 9px; border-radius:6px;
+    font-size:11px; font-weight:600; background:#dfe7ff; color:#003db5; width:fit-content;
+}
+.bk-sum-detail { font-size:12px; color:#666; }
+.bk-sum-detail i { margin-right:5px; color:#003db5; }
+
+/* Section */
+.bk-sum-section { border-top:1px solid #eee; padding-top:12px; }
+.bk-sum-section-title { font-size:14px; font-weight:700; color:#222; margin-bottom:8px; }
+.bk-sum-row {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:14px; color:#555; margin-bottom:7px;
+}
+.bk-sum-row i { margin-right:6px; color:#003db5; }
+.bk-sum-val { font-weight:600; color:#111; }
+
+/* Total */
+.bk-sum-total-row {
+    display:flex; justify-content:space-between; align-items:center;
+    border-top:2px solid #eee; padding-top:12px;
+}
+.bk-sum-total-label { font-size:16px; font-weight:700; color:#111; }
+.bk-sum-total-val   { font-size:22px; font-weight:700; color:#003db5; }
+
+.bk-error {
+    padding:10px 14px; background:#fff0f0; border:1px solid #ffc0c0;
+    border-radius:8px; color:#c0392b; font-size:13px;
+}
+
+/* Submit button */
+.bk-submit-btn {
+    width:100%; height:50px; background:#003db5; color:#fff;
+    border:none; border-radius:12px; font-size:16px; font-weight:700;
+    cursor:pointer; transition:background .2s; letter-spacing:.5px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.bk-submit-btn:hover:not(:disabled) { background:#0030a0; }
+.bk-submit-btn:disabled { background:#8fa8d6; cursor:not-allowed; }
+
+/* ── Responsive ── */
+@media (max-width:860px) {
+    .bk-layout { grid-template-columns:1fr; }
+    .bk-right  { position:static; }
+}
+/* ── Banner thông báo trang đang phát triển ── */
+.bk-dev-banner {
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+    padding: 12px 24px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.bk-dev-banner i { color: #f59e0b; font-size: 16px; }
+
+/* ── Thông báo nhỏ dưới nút thanh toán ── */
+.bk-payment-notice {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+}
+.bk-payment-notice i { color: #f59e0b; }

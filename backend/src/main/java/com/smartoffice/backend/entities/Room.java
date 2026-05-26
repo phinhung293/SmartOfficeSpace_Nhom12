@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "Rooms")
+@Table(name = "rooms")
 @Data
 public class Room {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "RoomID")
@@ -23,6 +24,19 @@ public class Room {
 
     @Column(name = "Description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "Location", length = 255)
+    private String location;
+
+    @Column(name = "OpenTime")
+    private java.time.LocalTime openTime;
+
+    @Column(name = "CloseTime")
+    private java.time.LocalTime closeTime;
+
+    // Lưu đường link ảnh phòng (có thể null)
+    @Column(name = "ImageUrl", columnDefinition = "LONGTEXT")
+    private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "StatusID", nullable = false)
