@@ -1,7 +1,7 @@
 package com.smartoffice.backend.services.impl;
 
-import com.smartoffice.backend.dto.request.RoomSearchRequest;
-import com.smartoffice.backend.dto.response.RoomResponse;
+import com.smartoffice.backend.dto.room.RoomSearchRequest;
+import com.smartoffice.backend.dto.room.RoomResponse;
 import com.smartoffice.backend.entities.Amenity;
 import com.smartoffice.backend.entities.Room;
 import com.smartoffice.backend.repositories.BookingRepository;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -396,6 +396,8 @@ function AdminBookingManager() {
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [toast, setToast]                 = useState('');
+    const [confirmDialog, setConfirmDialog] = useState(null);
+    const [editBooking, setEditBooking]     = useState(null);
 
     // Filters — date range
     const today = new Date().toISOString().split('T')[0];
@@ -416,9 +418,11 @@ function AdminBookingManager() {
         try {
             const params = { page, size: 10 };
             if (statusFilter) params.status = statusFilter;
-            if (dateFrom)    params.date = dateFrom;
-            if (searchTerm)  params.userKeyword = searchTerm;
-            if (roomFilter)  params.roomKeyword = roomFilter;
+            if (dateFrom)     params.dateFrom = dateFrom;   // gửi khoảng ngày
+            if (dateTo)       params.dateTo   = dateTo;
+            // searchTerm có thể là mã đơn hoặc tên khách → gửi bookingCode để backend tìm cả 2
+            if (searchTerm)   params.bookingCode = searchTerm;
+            if (roomFilter)   params.roomKeyword = roomFilter;
             const result = await adminGetAllBookings(params);
             setBookings(result.content || []);
             setTotalPages(result.totalPages || 0);
@@ -428,7 +432,7 @@ function AdminBookingManager() {
         } finally {
             setLoading(false);
         }
-    }, [page, statusFilter, dateFrom, searchTerm, roomFilter]);
+    }, [page, statusFilter, dateFrom, dateTo, searchTerm, roomFilter]);
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -458,6 +462,20 @@ function AdminBookingManager() {
         } finally { setActionLoading(false); }
     };
 
+    const handleRevertToPending = async (id) => {
+        if (!window.confirm('Chuyển đơn này về "Chờ thanh toán"?')) return;
+        setActionLoading(true);
+        try {
+            await axiosInstance.put(`/admin/bookings/${id}/revert-pending`);
+            showToast('Đã chuyển về chờ thanh toán.');
+            setSelectedBooking(prev => prev ? { ...prev, status: 'PENDING_PAYMENT' } : null);
+            fetchBookings();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Thao tác thất bại.', false);
+        } finally { setActionLoading(false); }
+    };
+
+
     const handleExportExcel = () => {
         // Placeholder cho tính năng xuất Excel
         alert('Tính năng xuất Excel đang được phát triển.');
@@ -475,6 +493,117 @@ function AdminBookingManager() {
                     color: '#fff', padding: '12px 20px', borderRadius: 8, zIndex: 9999, fontSize: 14
                 }}>
                     {toast.msg}
+                </div>
+            )}
+
+            {/* ── Custom Confirm Dialog ─────────────────────── */}
+            {confirmDialog && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+                }}>
+                    <div style={{ background: '#fff', borderRadius: 12, padding: 28, minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#1e293b', marginBottom: 20 }}>
+                            {confirmDialog.message}
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button onClick={doCancel}
+                                    style={{ padding: '9px 28px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                                OK
+                            </button>
+                            <button onClick={() => setConfirmDialog(null)}
+                                    style={{ padding: '9px 28px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal Chỉnh sửa đơn đặt phòng ───────────── */}
+            {editBooking && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+                }}>
+                    <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 420, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <span style={{ fontWeight: 800, fontSize: 16, color: '#1e293b' }}>Chỉnh sửa đơn đặt phòng</span>
+                            <button onClick={() => setEditBooking(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                        </div>
+
+                        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+                            Mã đơn: <strong style={{ color: '#003db5' }}>{editBooking.bookingCode}</strong> — {editBooking.roomName}
+                        </div>
+
+                        <div style={{ marginBottom: 14 }}>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Ngày đặt</label>
+                            <input type="date"
+                                   value={editBooking.startTime ? editBooking.startTime.split('T')[0] : ''}
+                                   onChange={e => {
+                                       const date = e.target.value;
+                                       const startHH = editBooking.startTime ? editBooking.startTime.split('T')[1]?.slice(0,5) : '09:00';
+                                       const endHH   = editBooking.endTime   ? editBooking.endTime.split('T')[1]?.slice(0,5)   : '10:00';
+                                       setEditBooking({ ...editBooking,
+                                           startTime: date + 'T' + startHH + ':00',
+                                           endTime:   date + 'T' + endHH   + ':00',
+                                       });
+                                   }}
+                                   style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giờ bắt đầu</label>
+                                <input type="time"
+                                       value={editBooking.startTime ? editBooking.startTime.split('T')[1]?.slice(0,5) : ''}
+                                       onChange={e => {
+                                           const date = editBooking.startTime ? editBooking.startTime.split('T')[0] : '';
+                                           setEditBooking({ ...editBooking, startTime: date + 'T' + e.target.value + ':00' });
+                                       }}
+                                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giờ kết thúc</label>
+                                <input type="time"
+                                       value={editBooking.endTime ? editBooking.endTime.split('T')[1]?.slice(0,5) : ''}
+                                       onChange={e => {
+                                           const date = editBooking.endTime ? editBooking.endTime.split('T')[0] : '';
+                                           setEditBooking({ ...editBooking, endTime: date + 'T' + e.target.value + ':00' });
+                                       }}
+                                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#fef3c7', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', marginBottom: 18 }}>
+                            ⚠️ Chỉnh sửa thời gian có thể ảnh hưởng đến tính toán tổng tiền. Vui lòng kiểm tra lại với khách hàng.
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setEditBooking(null)}
+                                    style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                Hủy
+                            </button>
+                            <button onClick={async () => {
+                                setActionLoading(true);
+                                try {
+                                    await axiosInstance.put(`/admin/bookings/${editBooking.bookingId}`, {
+                                        startTime: editBooking.startTime,
+                                        endTime: editBooking.endTime,
+                                    });
+                                    showToast('Đã cập nhật đơn thành công.');
+                                    setEditBooking(null);
+                                    setSelectedBooking(null);
+                                    fetchBookings();
+                                } catch (err) {
+                                    showToast(err.response?.data?.message || 'Cập nhật thất bại.', false);
+                                } finally { setActionLoading(false); }
+                            }}
+                                    style={{ flex: 2, padding: '10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -690,7 +819,7 @@ function AdminBookingManager() {
                             )}
                             {selectedBooking.status === 'PENDING_PAYMENT' && (
                                 <>
-                                    <button style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                    <button onClick={() => setEditBooking({ ...selectedBooking })} style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
                                         Chỉnh sửa
                                     </button>
                                     <button onClick={() => handleConfirm(selectedBooking.bookingId)} disabled={actionLoading}
@@ -698,6 +827,12 @@ function AdminBookingManager() {
                                         Xác nhận thanh toán
                                     </button>
                                 </>
+                            )}
+                            {selectedBooking.status === 'CONFIRMED' && (
+                                <button onClick={() => handleRevertToPending(selectedBooking.bookingId)} disabled={actionLoading}
+                                        style={{ width: '100%', padding: '10px', background: '#fff', color: '#b45309', border: '1.5px solid #b45309', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13, marginTop: 2 }}>
+                                    ↩ Hoàn về chờ thanh toán
+                                </button>
                             )}
                         </div>
                     </div>
@@ -710,10 +845,14 @@ function AdminBookingManager() {
 /* ══════════════════════════════════════════════════════════════
    ĐIỀU PHỐI KHÔNG GIAN — giống hình mẫu (form edit bên phải)
 ══════════════════════════════════════════════════════════════ */
+const EMPTY_ROOM = { name: '', workspaceType: 'Phòng họp', capacity: '', price: '', description: '', imageUrl: '', roomStatus: 'Còn trống', amenities: [] };
+
 function AdminSpaceCoordinator() {
     const [rooms, setRooms]       = useState([]);
     const [loading, setLoading]   = useState(true);
     const [editRoom, setEditRoom] = useState(null);
+    const [addRoom, setAddRoom]   = useState(null);
+    const [addLoading, setAddLoading] = useState(false);
     const [toast, setToast]       = useState('');
     const [roomFilter, setRoomFilter]   = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -754,6 +893,9 @@ function AdminSpaceCoordinator() {
                 description: editRoom.description,
                 location: editRoom.location,
                 imageUrl: editRoom.imageUrl,
+                workspaceType: editRoom.workspaceType,
+                roomStatus: editRoom.roomStatus,
+                amenities: (editRoom.amenities || []).map(a => a.name || a),
             });
             showToast('Đã cập nhật phòng thành công.');
             setEditRoom(null);
@@ -761,6 +903,31 @@ function AdminSpaceCoordinator() {
         } catch (err) {
             showToast(err.response?.data?.message || 'Cập nhật thất bại.', false);
         }
+    };
+
+    const handleAddRoom = async () => {
+        if (!addRoom) return;
+        if (!addRoom.name.trim()) { showToast('Vui lòng nhập tên phòng.', false); return; }
+        if (!addRoom.capacity || isNaN(addRoom.capacity)) { showToast('Vui lòng nhập sức chứa hợp lệ.', false); return; }
+        if (!addRoom.price || isNaN(addRoom.price)) { showToast('Vui lòng nhập giá hợp lệ.', false); return; }
+        setAddLoading(true);
+        try {
+            await axiosInstance.post('/admin/rooms', {
+                name: addRoom.name.trim(),
+                capacity: Number(addRoom.capacity),
+                price: Number(addRoom.price),
+                description: addRoom.description,
+                imageUrl: addRoom.imageUrl,
+                workspaceType: addRoom.workspaceType,
+                roomStatus: addRoom.roomStatus,
+                amenities: (addRoom.amenities || []).map(a => a.name || a),
+            });
+            showToast('Đã thêm không gian mới thành công.');
+            setAddRoom(null);
+            fetchRooms();
+        } catch (err) {
+            showToast(err.response?.data?.message || 'Thêm thất bại.', false);
+        } finally { setAddLoading(false); }
     };
 
     // Filter rooms
@@ -775,7 +942,7 @@ function AdminSpaceCoordinator() {
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
     // Amenities (checkbox) — dùng array names
-    const ALL_AMENITIES = ['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống'];
+    const ALL_AMENITIES = ['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Máy lạnh', 'Nước uống'];
     const editAmenityNames = editRoom?.amenities?.map(a => a.name || a) || [];
 
     const toggleAmenity = (name) => {
@@ -799,12 +966,110 @@ function AdminSpaceCoordinator() {
                 </div>
             )}
 
+            {/* ── Modal Thêm không gian ─────────────────────── */}
+            {addRoom !== null && (() => {
+                const addAmenityNames = (addRoom.amenities || []).map(a => a.name || a);
+                const toggleAddAmenity = (name) => {
+                    const exists = addAmenityNames.includes(name);
+                    setAddRoom({ ...addRoom, amenities: exists ? addRoom.amenities.filter(a => (a.name||a) !== name) : [...addRoom.amenities, { name }] });
+                };
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+                        <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 460, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <span style={{ fontWeight: 800, fontSize: 16, color: '#1e293b' }}>Thêm không gian mới</span>
+                                <button onClick={() => setAddRoom(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                            </div>
+
+                            {/* Ảnh */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Ảnh phòng (URL)</label>
+                                {addRoom.imageUrl && (
+                                    <img src={addRoom.imageUrl} alt="preview" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }} onError={e => { e.target.style.display='none'; }} />
+                                )}
+                                <input value={addRoom.imageUrl} onChange={e => setAddRoom({ ...addRoom, imageUrl: e.target.value })} placeholder="Nhập URL ảnh (https://...)" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 12, boxSizing: 'border-box' }} />
+                            </div>
+
+                            {/* Tên phòng */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Tên phòng <span style={{ color: '#ef4444' }}>*</span></label>
+                                <input value={addRoom.name} onChange={e => setAddRoom({ ...addRoom, name: e.target.value })} placeholder="Ví dụ: Phòng họp Panorama" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                            </div>
+
+                            {/* Loại không gian */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Loại không gian</label>
+                                <select value={addRoom.workspaceType} onChange={e => setAddRoom({ ...addRoom, workspaceType: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                                    <option value="Phòng họp">Phòng họp</option>
+                                    <option value="Phòng làm việc">Phòng làm việc</option>
+                                    <option value="Coworking">Coworking</option>
+                                </select>
+                            </div>
+
+                            {/* Sức chứa + Giá */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Sức chứa <span style={{ color: '#ef4444' }}>*</span></label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type="number" value={addRoom.capacity} onChange={e => setAddRoom({ ...addRoom, capacity: e.target.value })} placeholder="0" min="1" style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#94a3b8' }}>người</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giá theo giờ <span style={{ color: '#ef4444' }}>*</span></label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type="number" value={addRoom.price} onChange={e => setAddRoom({ ...addRoom, price: e.target.value })} placeholder="0" min="0" style={{ width: '100%', padding: '9px 22px 9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: '#94a3b8' }}>đ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Trạng thái */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Trạng thái</label>
+                                <select value={addRoom.roomStatus} onChange={e => setAddRoom({ ...addRoom, roomStatus: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                                    <option value="Còn trống">Còn trống</option>
+                                    <option value="Đang bận">Đang bận</option>
+                                    <option value="Bảo trì">Bảo trì</option>
+                                </select>
+                            </div>
+
+                            {/* Tiện ích */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Tiện ích</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                    {['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống'].map(name => (
+                                        <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={addAmenityNames.includes(name)} onChange={() => toggleAddAmenity(name)} style={{ accentColor: '#003db5', width: 15, height: 15 }} />
+                                            {name}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Mô tả */}
+                            <div style={{ marginBottom: 20 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Mô tả</label>
+                                <textarea value={addRoom.description} onChange={e => setAddRoom({ ...addRoom, description: e.target.value })} rows={3} placeholder="Mô tả ngắn về phòng..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => setAddRoom(null)} style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Hủy</button>
+                                <button onClick={handleAddRoom} disabled={addLoading} style={{ flex: 2, padding: '10px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: addLoading ? 0.7 : 1 }}>
+                                    {addLoading ? 'Đang lưu...' : 'Thêm không gian'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* ── Bảng trái ─────────────────────────────────── */}
             <div style={{ flex: 1, minWidth: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                 <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                         <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1e293b' }}>Điều phối không gian</h3>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        <button onClick={() => setAddRoom({ ...EMPTY_ROOM })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                             <i className="fa-solid fa-plus"></i> Thêm không gian
                         </button>
                     </div>
@@ -920,19 +1185,19 @@ function AdminSpaceCoordinator() {
 
                     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
                         {/* Ảnh phòng */}
-                        <div style={{ position: 'relative' }}>
-                            {editRoom.imageUrl ? (
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Ảnh phòng (URL)</label>
+                            {editRoom.imageUrl && (
                                 <img src={editRoom.imageUrl} alt={editRoom.name}
-                                     style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10 }} />
-                            ) : (
-                                <div style={{ width: '100%', height: 130, background: '#f1f5f9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                                    <i className="fa-regular fa-image" style={{ fontSize: 28 }}></i>
-                                </div>
+                                     style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }}
+                                     onError={e => { e.target.style.display='none'; }} />
                             )}
-                            <button style={{ position: 'absolute', top: 8, right: 8, padding: '5px 10px', background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                                Thay đổi ảnh
-                            </button>
-                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>JPG, PNG tối đa 2MB</div>
+                            <input
+                                value={editRoom.imageUrl || ''}
+                                onChange={e => setEditRoom({ ...editRoom, imageUrl: e.target.value })}
+                                placeholder="Nhập URL ảnh (https://...)"
+                                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 12, boxSizing: 'border-box', color: '#374151' }}
+                            />
                         </div>
 
                         {/* Tên phòng */}

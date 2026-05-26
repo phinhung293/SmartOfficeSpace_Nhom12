@@ -104,11 +104,10 @@ public class BookingServiceImpl implements BookingService {
         // Save trước để lấy ID cho bookingCode
         Booking saved = bookingRepository.save(booking);
 
-        // ── Sinh bookingCode: WS{YYMMDD}-{seq 3 chữ số} ──
+        // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} — dùng ID tránh duplicate ──
         String datePart = request.getDate().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String prefix   = "WS" + datePart + "-";
-        long seq        = bookingRepository.countByBookingCodePrefix(prefix);
-        saved.setBookingCode(prefix + String.format("%03d", seq));
+        saved.setBookingCode(prefix + String.format("%03d", saved.getBookingId()));
         saved = bookingRepository.save(saved);
 
         log.info("Booking created: {} for room {} by user {}", saved.getBookingCode(),
@@ -186,8 +185,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingResponse> getAllBookings(String status, LocalDate date,
-                                                String userKeyword, String roomKeyword,
+    public Page<BookingResponse> getAllBookings(String status, LocalDate dateFrom, LocalDate dateTo,
+                                                String userKeyword, String roomKeyword, String bookingCode,
                                                 Pageable pageable) {
         Specification<Booking> spec = (root, query, cb) -> null;
 
@@ -195,11 +194,16 @@ public class BookingServiceImpl implements BookingService {
             spec = spec.and((root, q, cb) ->
                     cb.equal(root.get("bookingStatus").get("statusName"), status));
         }
-        if (date != null) {
-            LocalDateTime dayStart = date.atStartOfDay();
-            LocalDateTime dayEnd   = date.plusDays(1).atStartOfDay();
+        // Lọc theo khoảng ngày dateFrom → dateTo
+        if (dateFrom != null) {
+            LocalDateTime from = dateFrom.atStartOfDay();
             spec = spec.and((root, q, cb) ->
-                    cb.between(root.get("startTime"), dayStart, dayEnd));
+                    cb.greaterThanOrEqualTo(root.get("startTime"), from));
+        }
+        if (dateTo != null) {
+            LocalDateTime to = dateTo.plusDays(1).atStartOfDay();
+            spec = spec.and((root, q, cb) ->
+                    cb.lessThan(root.get("startTime"), to));
         }
         if (userKeyword != null && !userKeyword.isBlank()) {
             String like = "%" + userKeyword.toLowerCase() + "%";
@@ -213,6 +217,15 @@ public class BookingServiceImpl implements BookingService {
             String like = "%" + roomKeyword.toLowerCase() + "%";
             spec = spec.and((root, q, cb) ->
                     cb.like(cb.lower(root.get("room").get("name")), like));
+        }
+        if (bookingCode != null && !bookingCode.isBlank()) {
+            String like = "%" + bookingCode.toLowerCase() + "%";
+            spec = spec.and((root, q, cb) ->
+                    cb.or(
+                            cb.like(cb.lower(root.get("bookingCode")), like),
+                            cb.like(cb.lower(root.get("user").get("name")), like),
+                            cb.like(cb.lower(root.get("user").get("email")), like)
+                    ));
         }
 
         return bookingRepository.findAll(spec, pageable).map(this::toResponse);

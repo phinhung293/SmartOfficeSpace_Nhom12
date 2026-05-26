@@ -300,110 +300,110 @@ public class DataInitializer implements CommandLineRunner {
             LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
 
             // === BOOKING HÔM NAY (cho dashboard tổng quan) ===
-            bookingRepository.save(buildBooking("WS260525-001", userA, viewCity,
+            saveBooking(buildBooking("SEED-260525-001", userA, viewCity,
                     today.withHour(9), today.withHour(11),
                     new BigDecimal("420000"), pendingPayment));
 
-            bookingRepository.save(buildBooking("WS260525-002", userB, executive,
+            saveBooking(buildBooking("SEED-260525-002", userB, executive,
                     today.withHour(10), today.withHour(13),
                     new BigDecimal("750000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260525-003", userC, riengA,
+            saveBooking(buildBooking("SEED-260525-003", userC, riengA,
                     today.withHour(14), today.withHour(17),
                     new BigDecimal("600000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260525-004", userD, banChungA,
+            saveBooking(buildBooking("SEED-260525-004", userD, banChungA,
                     today.withHour(9), today.withHour(10),
                     new BigDecimal("200000"), pendingPayment));
 
             // === BOOKING HÔM QUA ===
             LocalDateTime yesterday = today.minusDays(1);
-            bookingRepository.save(buildBooking("WS260524-001", userE, viewCity,
+            saveBooking(buildBooking("SEED-260524-001", userE, viewCity,
                     yesterday.withHour(13), yesterday.withHour(15),
                     new BigDecimal("400000"), cancelled));
 
-            bookingRepository.save(buildBooking("WS260524-002", userF, executive,
+            saveBooking(buildBooking("SEED-260524-002", userF, executive,
                     yesterday.withHour(8).withMinute(30), yesterday.withHour(11).withMinute(30),
                     new BigDecimal("750000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260524-003", userA, phongHopNho,
+            saveBooking(buildBooking("SEED-260524-003", userA, phongHopNho,
                     yesterday.withHour(10), yesterday.withHour(12),
                     new BigDecimal("300000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260524-004", userB, banChungB,
+            saveBooking(buildBooking("SEED-260524-004", userB, banChungB,
                     yesterday.withHour(9), yesterday.withHour(11),
                     new BigDecimal("200000"), expired));
 
             // === BOOKING 2 NGÀY TRƯỚC ===
             LocalDateTime day2 = today.minusDays(2);
-            bookingRepository.save(buildBooking("WS260523-001", userC, viewCity,
+            saveBooking(buildBooking("SEED-260523-001", userC, viewCity,
                     day2.withHour(9), day2.withHour(11),
                     new BigDecimal("420000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260523-002", userD, executive,
+            saveBooking(buildBooking("SEED-260523-002", userD, executive,
                     day2.withHour(14), day2.withHour(17),
                     new BigDecimal("750000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260523-003", userE, riengA,
+            saveBooking(buildBooking("SEED-260523-003", userE, riengA,
                     day2.withHour(10), day2.withHour(12),
                     new BigDecimal("600000"), cancelled));
 
-            bookingRepository.save(buildBooking("WS260523-004", userF, banChungA,
+            saveBooking(buildBooking("SEED-260523-004", userF, banChungA,
                     day2.withHour(9), day2.withHour(10),
                     new BigDecimal("100000"), confirmed));
 
             // === BOOKING 3 NGÀY TRƯỚC ===
             LocalDateTime day3 = today.minusDays(3);
-            bookingRepository.save(buildBooking("WS260522-001", userA, phongHopNho,
+            saveBooking(buildBooking("SEED-260522-001", userA, phongHopNho,
                     day3.withHour(8), day3.withHour(10),
                     new BigDecimal("300000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260522-002", userB, viewCity,
+            saveBooking(buildBooking("SEED-260522-002", userB, viewCity,
                     day3.withHour(13), day3.withHour(15),
                     new BigDecimal("420000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260522-003", userC, executive,
+            saveBooking(buildBooking("SEED-260522-003", userC, executive,
                     day3.withHour(10), day3.withHour(12),
                     new BigDecimal("750000"), pendingPayment));
 
-            bookingRepository.save(buildBooking("WS260522-004", userD, banChungB,
+            saveBooking(buildBooking("SEED-260522-004", userD, banChungB,
                     day3.withHour(14), day3.withHour(16),
                     new BigDecimal("200000"), confirmed));
 
             // === BOOKING 1 TUẦN TRƯỚC ===
             LocalDateTime week1 = today.minusDays(7);
-            bookingRepository.save(buildBooking("WS260518-001", userE, viewCity,
+            saveBooking(buildBooking("SEED-260518-001", userE, viewCity,
                     week1.withHour(9), week1.withHour(11),
                     new BigDecimal("420000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260518-002", userF, executive,
+            saveBooking(buildBooking("SEED-260518-002", userF, executive,
                     week1.withHour(14), week1.withHour(18),
                     new BigDecimal("1000000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260518-003", userA, riengA,
+            saveBooking(buildBooking("SEED-260518-003", userA, riengA,
                     week1.withHour(8), week1.withHour(12),
                     new BigDecimal("600000"), cancelled));
 
-            bookingRepository.save(buildBooking("WS260518-004", userB, banChungA,
+            saveBooking(buildBooking("SEED-260518-004", userB, banChungA,
                     week1.withHour(9), week1.withHour(11),
                     new BigDecimal("200000"), expired));
 
             // === BOOKING TƯƠNG LAI (để test) ===
             LocalDateTime tomorrow = today.plusDays(1);
-            bookingRepository.save(buildBooking("WS260526-001", userC, viewCity,
+            saveBooking(buildBooking("SEED-260526-001", userC, viewCity,
                     tomorrow.withHour(10), tomorrow.withHour(12),
                     new BigDecimal("420000"), pendingPayment));
 
-            bookingRepository.save(buildBooking("WS260526-002", userD, executive,
+            saveBooking(buildBooking("SEED-260526-002", userD, executive,
                     tomorrow.withHour(14), tomorrow.withHour(17),
                     new BigDecimal("750000"), confirmed));
 
-            bookingRepository.save(buildBooking("WS260526-003", userE, phongHopNho,
+            saveBooking(buildBooking("SEED-260526-003", userE, phongHopNho,
                     tomorrow.withHour(9), tomorrow.withHour(11),
                     new BigDecimal("300000"), confirmed));
 
             LocalDateTime day4 = today.plusDays(4);
-            bookingRepository.save(buildBooking("WS260529-001", userF, viewCity,
+            saveBooking(buildBooking("SEED-260529-001", userF, viewCity,
                     day4.withHour(9), day4.withHour(11),
                     new BigDecimal("420000"), pendingPayment));
 
@@ -412,6 +412,10 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     // ── Helper finders ────────────────────────────────────────────────
+    private void saveBooking(Booking b) {
+        if (b != null) bookingRepository.save(b);
+    }
+
     private Amenity find(List<Amenity> list, String name) {
         return list.stream().filter(a -> a.getName().equals(name)).findFirst().orElse(null);
     }

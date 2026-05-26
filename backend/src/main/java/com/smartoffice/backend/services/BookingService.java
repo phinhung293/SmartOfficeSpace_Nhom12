@@ -29,8 +29,8 @@ public interface BookingService {
     /**
      * Admin: toàn bộ booking, có filter.
      */
-    Page<BookingResponse> getAllBookings(String status, LocalDate date,
-                                         String userKeyword, String roomKeyword,
+    Page<BookingResponse> getAllBookings(String status, LocalDate dateFrom, LocalDate dateTo,
+                                         String userKeyword, String roomKeyword, String bookingCode,
                                          Pageable pageable);
 
     /**

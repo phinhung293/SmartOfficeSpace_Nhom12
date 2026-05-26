@@ -144,6 +144,7 @@ export default function Booking() {
 
         const token = localStorage.getItem("token");
         if (!token) {
+            // Chưa đăng nhập → lưu redirect và chuyển về trang đăng nhập
             sessionStorage.setItem("redirectAfterLogin", `/booking/${roomId}`);
             navigate("/login", {
                 state: { message: "Vui lòng đăng nhập để đặt phòng." },
@@ -154,6 +155,7 @@ export default function Booking() {
         const tr = getTimeRange();
         if (!tr) return;
 
+        // Đã đăng nhập → tạo booking và chuyển sang trang thanh toán
         setSubmitting(true);
         setErrorMsg("");
 
