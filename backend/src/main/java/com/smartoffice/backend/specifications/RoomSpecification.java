@@ -97,14 +97,14 @@ public class RoomSpecification {
         };
     }
 
-    // Amenities
+    // Amenities — filter theo tên (frontend gửi list tên tiện ích)
     public static Specification<Room> hasAmenities(
-            List<Integer> amenityIds
+            List<String> amenityNames
     ) {
 
         return (root, query, cb) -> {
 
-            if (amenityIds == null || amenityIds.isEmpty()) {
+            if (amenityNames == null || amenityNames.isEmpty()) {
                 return null;
             }
 
@@ -113,8 +113,8 @@ public class RoomSpecification {
             Join<Object, Object> amenitiesJoin =
                     root.join("amenities");
 
-            return amenitiesJoin.get("amenityId")
-                    .in(amenityIds);
+            return amenitiesJoin.get("name")
+                    .in(amenityNames);
         };
     }
     // Room Status

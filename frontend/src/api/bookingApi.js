@@ -34,6 +34,6 @@ export const adminConfirmBooking = (id) =>
 export const adminGetAllRooms = () =>
     axiosInstance.get('/admin/rooms').then(r => r.data.data);
 
-/** Admin: lấy thống kê tổng quan hôm nay */
+/** Admin: lấy thống kê tổng quan hôm nay (fixed: was /admin/stats/today) */
 export const adminGetTodayStats = () =>
-    axiosInstance.get('/admin/stats/today').then(r => r.data.data);
+    axiosInstance.get('/admin/dashboard/tong-quan').then(r => r.data.data);

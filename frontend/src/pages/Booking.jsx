@@ -26,18 +26,6 @@ const TYPE_LABEL = {
     "Training Room": "Phòng đào tạo",
 };
 
-const STATUS_LABEL = {
-    Available: "Còn trống",
-    Occupied: "Đang sử dụng",
-    Maintenance: "Bảo trì",
-};
-const STATUS_COLOR = {
-    CONFIRMED: "#1a7f3c",
-    PENDING_PAYMENT: "#f59e0b",
-    CANCELLED: "#ef4444",
-    EXPIRED: "#94a3b8",
-};
-
 export default function Booking() {
     const { roomId } = useParams();
     const navigate = useNavigate();
@@ -53,13 +41,18 @@ export default function Booking() {
     const [maintSlots, setMaintSlots] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-    const [successMsg, setSuccessMsg] = useState("");
 
     /* ── Load room ── */
     useEffect(() => {
         (async () => {
             try {
-                setRoom(await getRoomDetail(roomId));
+                const r = await getRoomDetail(roomId);
+                setRoom(r);
+                // Chặn đặt phòng nếu phòng đang bảo trì hoặc ngừng hoạt động
+                const s = r?.roomStatus?.toLowerCase();
+                if (s && s !== "available") {
+                    setErrorMsg("Phòng hiện không khả dụng để đặt. Vui lòng chọn phòng khác.");
+                }
             } catch (e) {
                 console.error(e);
             } finally {
@@ -123,7 +116,7 @@ export default function Booking() {
     const hours = selectedSlots.length;
     const pricePerHour = Number(room?.price || 0);
     const subtotal = hours * pricePerHour;
-    const serviceFee = Math.round(subtotal * 0.05);
+    const serviceFee = 0; // Phí dịch vụ tính ở backend
     const total = subtotal + serviceFee;
 
     const getTimeRange = () => {
@@ -417,8 +410,8 @@ export default function Booking() {
                                     <span>{vnd(subtotal)}đ</span>
                                 </div>
                                 <div className="bk-sum-row">
-                                    <span>Phí dịch vụ (5%)</span>
-                                    <span>{vnd(serviceFee)}đ</span>
+                                    <span>Phí dịch vụ</span>
+                                    <span>Miễn phí</span>
                                 </div>
                             </div>
 
@@ -430,20 +423,10 @@ export default function Booking() {
                             {errorMsg && (
                                 <div className="bk-error">⚠️ {errorMsg}</div>
                             )}
-                            {successMsg && (
-                                <div
-                                    className="bk-error"
-                                    style={{ color: "#1a7f3c", background: "#f0fdf4", borderColor: "#bbf7d0" }}
-                                >
-                                    ✅ {successMsg}
-                                </div>
-                            )}
 
                             <button
                                 className="bk-submit-btn"
-                                disabled={
-                                    submitting || selectedSlots.length === 0
-                                }
+                                disabled={submitting || selectedSlots.length === 0 || !!errorMsg}
                                 onClick={handleSubmit}
                             >
                                 {submitting ? (

@@ -19,6 +19,9 @@ import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaSpecificationExecutor<Booking> {
 
+    /* ─── Kiểm tra booking code đã tồn tại chưa (dùng cho DataInitializer seed) ─── */
+    boolean existsByBookingCode(String bookingCode);
+
     /* ─── Kiểm tra overlap (dùng khi load slot status) ─── */
     @Query("""
         SELECT COUNT(b) > 0
@@ -32,6 +35,39 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
             @Param("roomId") Integer roomId,
             @Param("requestedStart") LocalDateTime requestedStart,
             @Param("requestedEnd") LocalDateTime requestedEnd
+    );
+
+    /* ─── Kiểm tra overlap khi admin sửa giờ (loại trừ chính đơn đang sửa) ─── */
+    @Query("""
+        SELECT COUNT(b) > 0
+        FROM Booking b
+        WHERE b.room.roomId = :roomId
+          AND b.bookingId  <> :excludeBookingId
+          AND b.startTime   < :requestedEnd
+          AND b.endTime     > :requestedStart
+          AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
+    """)
+    boolean hasOverlappingExcludeSelf(
+            @Param("roomId")           Integer roomId,
+            @Param("excludeBookingId") Integer excludeBookingId,
+            @Param("requestedStart")   LocalDateTime requestedStart,
+            @Param("requestedEnd")     LocalDateTime requestedEnd
+    );
+
+    /* ─── Lấy danh sách overlap (để hiển thị tên trong thông báo lỗi) ─── */
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.room.roomId = :roomId
+          AND b.bookingId  <> :excludeBookingId
+          AND b.startTime   < :requestedEnd
+          AND b.endTime     > :requestedStart
+          AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
+    """)
+    List<Booking> findAllOverlappingExcludeSelf(
+            @Param("roomId")           Integer roomId,
+            @Param("excludeBookingId") Integer excludeBookingId,
+            @Param("requestedStart")   LocalDateTime requestedStart,
+            @Param("requestedEnd")     LocalDateTime requestedEnd
     );
 
     /* ─── Kiểm tra overlap với PESSIMISTIC LOCK (dùng khi tạo booking) ─── */

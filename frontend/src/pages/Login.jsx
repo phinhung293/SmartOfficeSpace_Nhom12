@@ -42,13 +42,10 @@ const Login = () => {
 
             // LOGIC CHUYỂN HƯỚNG TỰ ĐỘNG THEO QUYỀN (ROLE)
             if (userData.role === 'ADMIN') {
-                navigate('/admin'); // Admin nhảy thẳng vào Dashboard quản trị
+                window.location.href = '/admin';
             } else {
-                navigate('/'); // User thường về trang chủ đặt phòng
+                window.location.href = '/';
             }
-
-            // Làm mới lại trạng thái ứng dụng để nhận Header mới
-            window.location.reload();
 
         } catch (error) {
             // Hiển thị lỗi đỏ mượt mà lên khung báo lỗi

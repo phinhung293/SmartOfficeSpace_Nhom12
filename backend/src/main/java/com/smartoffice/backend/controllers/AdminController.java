@@ -201,6 +201,37 @@ public class AdminController {
             booking.setEndTime(LocalDateTime.parse(body.get("endTime")));
         }
 
+        // ── KIỂM TRA OVERLAP với các đơn khác cùng phòng ──────────────────────
+        // Dùng hasOverlappingExcludeSelf đảm bảo loại trừ chính đơn đang sửa
+        if (booking.getStartTime() != null && booking.getEndTime() != null) {
+            if (!booking.getEndTime().isAfter(booking.getStartTime())) {
+                throw new RuntimeException("Giờ kết thúc phải sau giờ bắt đầu.");
+            }
+            boolean hasConflict = bookingRepository.hasOverlappingExcludeSelf(
+                    booking.getRoom().getRoomId(),
+                    booking.getBookingId(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+            if (hasConflict) {
+                List<com.smartoffice.backend.entities.Booking> conflicts =
+                        bookingRepository.findAllOverlappingExcludeSelf(
+                                booking.getRoom().getRoomId(),
+                                booking.getBookingId(),
+                                booking.getStartTime(),
+                                booking.getEndTime()
+                        );
+                String names = conflicts.stream()
+                        .map(b -> b.getUser().getName()
+                                + " (" + b.getStartTime().toLocalTime().toString().substring(0,5)
+                                + "–" + b.getEndTime().toLocalTime().toString().substring(0,5) + ")")
+                        .collect(java.util.stream.Collectors.joining(", "));
+                throw new RuntimeException(
+                        "Khung giờ bị trùng với đơn của: " + names + ". Vui lòng chọn giờ khác."
+                );
+            }
+        }
+
         // Tính lại tổng tiền nếu có thay đổi giờ
         if (booking.getStartTime() != null && booking.getEndTime() != null && booking.getRoom() != null) {
             long hours = java.time.Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();

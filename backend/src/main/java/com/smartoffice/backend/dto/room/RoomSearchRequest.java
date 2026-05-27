@@ -35,8 +35,8 @@ public class RoomSearchRequest {
     // Trạng thái phòng
     private Integer statusId;
 
-    // Danh sách tiện ích
-    private List<Integer> amenityIds;
+    // Danh sách tên tiện ích (frontend gửi label, backend filter theo tên)
+    private List<String> amenityIds;
 
     // Pagination
     private Integer page = 0;

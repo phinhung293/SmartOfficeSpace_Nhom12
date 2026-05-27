@@ -15,9 +15,9 @@ const TYPE_STYLE = {
 const getTypeStyle = t => TYPE_STYLE[t] || { label: t, cls: "tag-default" };
 
 const AMENITY_OPTIONS = [
-    { id: 1, label: "WIFI" }, { id: 2, label: "Máy chiếu" },
+    { id: 1, label: "Wi-Fi" }, { id: 2, label: "Máy chiếu" },
     { id: 3, label: "TV" },   { id: 4, label: "Whiteboard" },
-    { id: 5, label: "Điều hòa" }, { id: 6, label: "Nước/Đồ ăn" },
+    { id: 5, label: "Điều hòa" }, { id: 6, label: "Nước uống" },
     { id: 7, label: "Bãi xe" },   { id: 8, label: "Khác" },
 ];
 const PRICE_OPTIONS = [
@@ -67,11 +67,12 @@ const DEFAULT_FILTER = {
 /* ═══════════════════════════ Sub-components ════════════════════════════ */
 
 function StatusBadge({ status }) {
-    const ok = status?.toLowerCase() === "available" || status === "Còn trống";
+    const isMaint = status === "Bảo trì" || status?.toLowerCase() === "maintenance";
+    const isOk    = status?.toLowerCase() === "available" || status === "Còn trống";
+    const cls     = isMaint ? "badge-maint" : isOk ? "badge-ok" : "badge-busy";
+    const label   = isMaint ? "Bảo trì" : isOk ? "Còn trống" : (status || "—");
     return (
-        <span className={`sp-status-badge ${ok ? "badge-ok" : "badge-busy"}`}>
-            {ok ? "Còn trống" : (status || "—")}
-        </span>
+        <span className={`sp-status-badge ${cls}`}>{label}</span>
     );
 }
 
@@ -131,11 +132,11 @@ function Pagination({ current, total, onChange }) {
 function FilterModal({ init, onApply, onClose }) {
     const [local, setLocal] = useState({ ...init });
 
-    const toggleAmenity = id => setLocal(p => ({
+    const toggleAmenity = label => setLocal(p => ({
         ...p,
-        amenityIds: p.amenityIds.includes(id)
-            ? p.amenityIds.filter(a => a !== id)
-            : [...p.amenityIds, id],
+        amenityIds: p.amenityIds.includes(label)
+            ? p.amenityIds.filter(a => a !== label)
+            : [...p.amenityIds, label],
     }));
     const setPrice = (min, max) => {
         const same = local.minPrice === min && local.maxPrice === max;
@@ -199,8 +200,8 @@ function FilterModal({ init, onApply, onClose }) {
                                 {AMENITY_OPTIONS.map(o => (
                                     <label key={o.id} className="fm-row">
                                         <input type="checkbox" className="fm-check"
-                                               checked={local.amenityIds.includes(o.id)}
-                                               onChange={() => toggleAmenity(o.id)} />
+                                               checked={local.amenityIds.includes(o.label)}
+                                               onChange={() => toggleAmenity(o.label)} />
                                         {o.label}
                                     </label>
                                 ))}

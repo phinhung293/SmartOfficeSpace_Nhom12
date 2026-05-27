@@ -15,5 +15,5 @@ public class RoomUpdateRequest {
     private String imageUrl;
     private String workspaceType;   // "Phòng họp", "Phòng làm việc", "Coworking"
     private String roomStatus;      // "Còn trống", "Đang bận", "Bảo trì"
-    private List<String> amenities; // danh sách tên tiện ích, e.g. ["Wi-Fi","TV","Máy lạnh"]
+    private List<String> amenities; // danh sách tên tiện ích
 }

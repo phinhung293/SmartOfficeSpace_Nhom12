@@ -98,6 +98,12 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public String getRealtimeStatus(Integer roomId) {
+        Room room = getRoomDetail(roomId);
+        // Ưu tiên trạng thái DB: nếu đang bảo trì → trả về ngay
+        if (room.getRoomStatus() != null
+                && "Bảo trì".equalsIgnoreCase(room.getRoomStatus().getStatusName())) {
+            return "Bảo trì";
+        }
         LocalDateTime now = LocalDateTime.now();
         boolean occupied = bookingRepository
                 .existsByRoom_RoomIdAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(roomId, now, now);

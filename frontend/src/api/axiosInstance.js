@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8080/api', // URL của Backend Spring Boot
+    baseURL: 'http://localhost:8080/api',
 });
 
-// Interceptor: Tự động gắn Token vào mỗi Request gửi đi
+// Request interceptor: Tự động gắn Token vào mỗi Request gửi đi
 axiosInstance.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -12,5 +12,18 @@ axiosInstance.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Response interceptor: Xử lý lỗi 401 (token hết hạn) → redirect về login
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default axiosInstance;

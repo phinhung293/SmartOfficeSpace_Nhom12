@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import './css/AdminDashboard.css';
 import {
     adminGetAllBookings, adminCancelBooking, adminConfirmBooking, adminGetAllRooms
@@ -56,28 +56,7 @@ const RoomStatusBadge = ({ status }) => {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 const AdminDashboard = () => {
-    const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user'));
-
     const [activeMenu, setActiveMenu] = useState('tong-quan');
-    const [openSubMenus, setOpenSubMenus] = useState({
-        userMgmt: false,
-        spaceMgmt: false,
-        bookingMgmt: true,   // mở sẵn bookingMgmt
-        paymentMgmt: false
-    });
-
-    const toggleSubMenu = (menuKey) => {
-        setOpenSubMenus(prev => ({ ...prev, [menuKey]: !prev[menuKey] }));
-    };
-
-    const handleMenuClick = (menuKey, subKey) => {
-        if (subKey) {
-            toggleSubMenu(subKey);
-        } else {
-            setActiveMenu(menuKey);
-        }
-    };
 
     return (
         <div className="admin-main-body-layout">
@@ -94,66 +73,36 @@ const AdminDashboard = () => {
                         </div>
                     </li>
 
-                    <li className="menu-node">
-                        <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('userMgmt')}>
+                    <li className={`menu-node ${activeMenu === 'nguoi-dung' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('nguoi-dung')}>
+                        <div className="menu-link-item">
                             <i className="fa-solid fa-user-group menu-icon"></i>
                             <span>Quản lý người dùng</span>
-                            <i className={`fa-solid fa-chevron-down sub-arrow ${openSubMenus.userMgmt ? 'rotate' : ''}`}></i>
                         </div>
-                        {openSubMenus.userMgmt && (
-                            <ul className="sidebar-sub-menu">
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Danh sách thành viên</li>
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Phân quyền tài khoản</li>
-                            </ul>
-                        )}
                     </li>
 
-                    <li className="menu-node">
-                        <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('spaceMgmt')}>
+                    <li className={`menu-node ${activeMenu === 'dieu-phoi' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('dieu-phoi')}>
+                        <div className="menu-link-item">
                             <i className="fa-solid fa-cubes menu-icon"></i>
                             <span>Quản lý không gian</span>
-                            <i className={`fa-solid fa-chevron-down sub-arrow ${openSubMenus.spaceMgmt ? 'rotate' : ''}`}></i>
                         </div>
-                        {openSubMenus.spaceMgmt && (
-                            <ul className="sidebar-sub-menu">
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Danh sách văn phòng</li>
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Sơ đồ thiết lập</li>
-                            </ul>
-                        )}
                     </li>
 
-                    <li className="menu-node">
-                        <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('bookingMgmt')}>
+                    <li className={`menu-node ${activeMenu === 'lich-su' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('lich-su')}>
+                        <div className="menu-link-item">
                             <i className="fa-regular fa-calendar-days menu-icon"></i>
                             <span>Quản lý đặt phòng</span>
-                            <i className={`fa-solid fa-chevron-down sub-arrow ${openSubMenus.bookingMgmt ? 'rotate' : ''}`}></i>
                         </div>
-                        {openSubMenus.bookingMgmt && (
-                            <ul className="sidebar-sub-menu">
-                                <li className={`sub-menu-item ${activeMenu === 'lich-su' ? 'active' : ''}`}
-                                    onClick={() => setActiveMenu('lich-su')}>
-                                    <span className="dot-icon"></span> Lịch sử đặt phòng
-                                </li>
-                                <li className={`sub-menu-item ${activeMenu === 'dieu-phoi' ? 'active' : ''}`}
-                                    onClick={() => setActiveMenu('dieu-phoi')}>
-                                    <span className="dot-icon"></span> Điều phối không gian
-                                </li>
-                            </ul>
-                        )}
                     </li>
 
-                    <li className="menu-node">
-                        <div className="menu-link-item has-sub" onClick={() => toggleSubMenu('paymentMgmt')}>
+                    <li className={`menu-node ${activeMenu === 'thanh-toan' ? 'active-node' : ''}`}
+                        onClick={() => setActiveMenu('thanh-toan')}>
+                        <div className="menu-link-item">
                             <i className="fa-solid fa-file-invoice-dollar menu-icon"></i>
                             <span>Thanh toán & Hóa đơn</span>
-                            <i className={`fa-solid fa-chevron-down sub-arrow ${openSubMenus.paymentMgmt ? 'rotate' : ''}`}></i>
                         </div>
-                        {openSubMenus.paymentMgmt && (
-                            <ul className="sidebar-sub-menu">
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Hóa đơn dịch vụ</li>
-                                <li className="sub-menu-item"><span className="dot-icon"></span> Lịch sử giao dịch</li>
-                            </ul>
-                        )}
                     </li>
 
                     <li className={`menu-node ${activeMenu === 'thong-ke' ? 'active-node' : ''}`}
@@ -398,6 +347,7 @@ function AdminBookingManager() {
     const [toast, setToast]                 = useState('');
     const [confirmDialog, setConfirmDialog] = useState(null);
     const [editBooking, setEditBooking]     = useState(null);
+    const [sameRoomBookings, setSameRoomBookings] = useState([]);
 
     // Filters — date range
     const today = new Date().toISOString().split('T')[0];
@@ -436,17 +386,26 @@ function AdminBookingManager() {
 
     useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-    const handleCancel = async (id) => {
-        if (!window.confirm('Bạn có chắc muốn hủy đơn này?')) return;
-        setActionLoading(true);
-        try {
-            await adminCancelBooking(id);
-            showToast('Đã hủy đơn thành công.');
-            setSelectedBooking(null);
-            fetchBookings();
-        } catch (err) {
-            showToast(err.response?.data?.message || 'Hủy thất bại.', false);
-        } finally { setActionLoading(false); }
+    const handleCancel = (id) => {
+        setConfirmDialog({
+            icon: '🗑️',
+            title: 'Hủy đơn đặt phòng',
+            message: 'Bạn có chắc chắn muốn hủy đơn này không? Hành động này không thể hoàn tác.',
+            confirmLabel: 'Hủy đơn',
+            confirmColor: '#ef4444',
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                setActionLoading(true);
+                try {
+                    await adminCancelBooking(id);
+                    showToast('Đã hủy đơn thành công.');
+                    setSelectedBooking(null);
+                    fetchBookings();
+                } catch (err) {
+                    showToast(err.response?.data?.message || 'Hủy thất bại.', false);
+                } finally { setActionLoading(false); }
+            }
+        });
     };
 
     const handleConfirm = async (id) => {
@@ -454,7 +413,6 @@ function AdminBookingManager() {
         try {
             await adminConfirmBooking(id);
             showToast('Đã xác nhận thanh toán.');
-            // Cập nhật selectedBooking status
             setSelectedBooking(prev => prev ? { ...prev, status: 'CONFIRMED' } : null);
             fetchBookings();
         } catch (err) {
@@ -462,23 +420,67 @@ function AdminBookingManager() {
         } finally { setActionLoading(false); }
     };
 
-    const handleRevertToPending = async (id) => {
-        if (!window.confirm('Chuyển đơn này về "Chờ thanh toán"?')) return;
-        setActionLoading(true);
-        try {
-            await axiosInstance.put(`/admin/bookings/${id}/revert-pending`);
-            showToast('Đã chuyển về chờ thanh toán.');
-            setSelectedBooking(prev => prev ? { ...prev, status: 'PENDING_PAYMENT' } : null);
-            fetchBookings();
-        } catch (err) {
-            showToast(err.response?.data?.message || 'Thao tác thất bại.', false);
-        } finally { setActionLoading(false); }
+    const handleRevertToPending = (id) => {
+        setConfirmDialog({
+            icon: '↩️',
+            title: 'Hoàn về chờ thanh toán',
+            message: 'Bạn có chắc chắn muốn chuyển đơn này về trạng thái "Chờ thanh toán"?',
+            confirmLabel: 'Xác nhận',
+            confirmColor: '#003db5',
+            onConfirm: async () => {
+                setConfirmDialog(null);
+                setActionLoading(true);
+                try {
+                    await axiosInstance.put(`/admin/bookings/${id}/revert-pending`);
+                    showToast('Đã chuyển về chờ thanh toán.');
+                    setSelectedBooking(prev => prev ? { ...prev, status: 'PENDING_PAYMENT' } : null);
+                    fetchBookings();
+                } catch (err) {
+                    showToast(err.response?.data?.message || 'Thao tác thất bại.', false);
+                } finally { setActionLoading(false); }
+            }
+        });
     };
 
 
     const handleExportExcel = () => {
-        // Placeholder cho tính năng xuất Excel
-        alert('Tính năng xuất Excel đang được phát triển.');
+        if (bookings.length === 0) {
+            showToast('Không có dữ liệu để xuất.', false);
+            return;
+        }
+
+        const STATUS_VI = {
+            CONFIRMED:       'Đã xác nhận',
+            PENDING_PAYMENT: 'Chờ thanh toán',
+            CANCELLED:       'Đã hủy',
+            EXPIRED:         'Hết hạn',
+        };
+
+        const rows = bookings.map(b => ({
+            'Mã đơn':      b.bookingCode,
+            'Tên phòng':   b.roomName,
+            'Khách hàng':  b.userName || '—',
+            'Ngày đặt':    fmtDate(b.startTime),
+            'Giờ bắt đầu': fmtTime(b.startTime),
+            'Giờ kết thúc': fmtTime(b.endTime),
+            'Tổng tiền (đ)': Number(b.totalAmount || 0),
+            'Trạng thái':  STATUS_VI[b.status] || b.status,
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+
+        // Căn độ rộng cột tự động
+        const colWidths = Object.keys(rows[0]).map(key => ({
+            wch: Math.max(key.length, ...rows.map(r => String(r[key] || '').length)) + 2
+        }));
+        ws['!cols'] = colWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Lịch sử đặt phòng');
+
+        const fileName = `DatPhong_${dateFrom}_${dateTo}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        showToast(`Đã xuất file ${fileName}`);
     };
 
     // Panel chi tiết chiếm 35% bên phải — layout chia đôi khi có selectedBooking
@@ -499,21 +501,42 @@ function AdminBookingManager() {
             {/* ── Custom Confirm Dialog ─────────────────────── */}
             {confirmDialog && (
                 <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+                    position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+                    backdropFilter: 'blur(2px)'
                 }}>
-                    <div style={{ background: '#fff', borderRadius: 12, padding: 28, minWidth: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: '#1e293b', marginBottom: 20 }}>
+                    <div style={{
+                        background: '#fff', borderRadius: 16, padding: '32px 28px 28px',
+                        minWidth: 340, maxWidth: 400, width: '90%',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                        textAlign: 'center', animation: 'fadeIn .15s ease'
+                    }}>
+                        <div style={{ fontSize: 36, marginBottom: 12 }}>{confirmDialog.icon}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+                            {confirmDialog.title}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, marginBottom: 28 }}>
                             {confirmDialog.message}
                         </div>
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <button onClick={doCancel}
-                                    style={{ padding: '9px 28px', background: '#003db5', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                                OK
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => setConfirmDialog(null)}
+                                style={{
+                                    flex: 1, padding: '11px 0', background: '#f1f5f9',
+                                    color: '#475569', border: 'none', borderRadius: 10,
+                                    fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}>
+                                Không, quay lại
                             </button>
-                            <button onClick={() => setConfirmDialog(null)}
-                                    style={{ padding: '9px 28px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                                Hủy
+                            <button
+                                onClick={confirmDialog.onConfirm}
+                                style={{
+                                    flex: 1, padding: '11px 0',
+                                    background: confirmDialog.confirmColor || '#003db5',
+                                    color: '#fff', border: 'none', borderRadius: 10,
+                                    fontWeight: 700, cursor: 'pointer', fontSize: 14
+                                }}>
+                                {confirmDialog.confirmLabel || 'Xác nhận'}
                             </button>
                         </div>
                     </div>
@@ -529,7 +552,7 @@ function AdminBookingManager() {
                     <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 420, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <span style={{ fontWeight: 800, fontSize: 16, color: '#1e293b' }}>Chỉnh sửa đơn đặt phòng</span>
-                            <button onClick={() => setEditBooking(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                            <button onClick={() => { setEditBooking(null); setSameRoomBookings([]); }} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
                         </div>
 
                         <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
@@ -553,25 +576,37 @@ function AdminBookingManager() {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                            {/* Giờ bắt đầu */}
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giờ bắt đầu</label>
-                                <input type="time"
-                                       value={editBooking.startTime ? editBooking.startTime.split('T')[1]?.slice(0,5) : ''}
-                                       onChange={e => {
-                                           const date = editBooking.startTime ? editBooking.startTime.split('T')[0] : '';
-                                           setEditBooking({ ...editBooking, startTime: date + 'T' + e.target.value + ':00' });
-                                       }}
-                                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                <select
+                                    value={editBooking.startTime ? editBooking.startTime.split('T')[1]?.slice(0,5) : '08:00'}
+                                    onChange={e => {
+                                        const date = editBooking.startTime ? editBooking.startTime.split('T')[0] : '';
+                                        setEditBooking({ ...editBooking, startTime: date + 'T' + e.target.value + ':00' });
+                                    }}
+                                    style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff', cursor: 'pointer' }}>
+                                    {Array.from({ length: 14 }, (_, i) => i + 8).map(h => {
+                                        const hh = String(h).padStart(2, '0') + ':00';
+                                        return <option key={h} value={hh}>{hh}</option>;
+                                    })}
+                                </select>
                             </div>
+                            {/* Giờ kết thúc */}
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Giờ kết thúc</label>
-                                <input type="time"
-                                       value={editBooking.endTime ? editBooking.endTime.split('T')[1]?.slice(0,5) : ''}
-                                       onChange={e => {
-                                           const date = editBooking.endTime ? editBooking.endTime.split('T')[0] : '';
-                                           setEditBooking({ ...editBooking, endTime: date + 'T' + e.target.value + ':00' });
-                                       }}
-                                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                                <select
+                                    value={editBooking.endTime ? editBooking.endTime.split('T')[1]?.slice(0,5) : '09:00'}
+                                    onChange={e => {
+                                        const date = editBooking.endTime ? editBooking.endTime.split('T')[0] : '';
+                                        setEditBooking({ ...editBooking, endTime: date + 'T' + e.target.value + ':00' });
+                                    }}
+                                    style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff', cursor: 'pointer' }}>
+                                    {Array.from({ length: 14 }, (_, i) => i + 9).map(h => {
+                                        const hh = String(h).padStart(2, '0') + ':00';
+                                        return <option key={h} value={hh}>{hh}</option>;
+                                    })}
+                                </select>
                             </div>
                         </div>
 
@@ -579,30 +614,140 @@ function AdminBookingManager() {
                             ⚠️ Chỉnh sửa thời gian có thể ảnh hưởng đến tính toán tổng tiền. Vui lòng kiểm tra lại với khách hàng.
                         </div>
 
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setEditBooking(null)}
-                                    style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
-                                Hủy
-                            </button>
-                            <button onClick={async () => {
-                                setActionLoading(true);
-                                try {
-                                    await axiosInstance.put(`/admin/bookings/${editBooking.bookingId}`, {
-                                        startTime: editBooking.startTime,
-                                        endTime: editBooking.endTime,
-                                    });
-                                    showToast('Đã cập nhật đơn thành công.');
-                                    setEditBooking(null);
-                                    setSelectedBooking(null);
-                                    fetchBookings();
-                                } catch (err) {
-                                    showToast(err.response?.data?.message || 'Cập nhật thất bại.', false);
-                                } finally { setActionLoading(false); }
-                            }}
-                                    style={{ flex: 2, padding: '10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
-                                Lưu thay đổi
-                            </button>
-                        </div>
+
+                        {/* ── Các đơn KHÁC cùng phòng cùng ngày + kiểm tra overlap trực tiếp ── */}
+                        {(() => {
+                            // Normalize: Jackson có thể trả về array [2026,5,28,11,0] hoặc string "2026-05-28T11:00:00"
+                            const toISO = t => {
+                                if (!t) return null;
+                                if (Array.isArray(t)) {
+                                    const [y, mo, d, h = 0, m = 0] = t;
+                                    return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`;
+                                }
+                                return String(t);
+                            };
+                            const toH = t => {
+                                const iso = toISO(t);
+                                if (!iso) return 0;
+                                const parts = iso.split('T')[1]?.split(':');
+                                return parts ? parseInt(parts[0]) + parseInt(parts[1]) / 60 : 0;
+                            };
+                            const toHHMM = t => toISO(t)?.split('T')[1]?.slice(0,5) ?? '--:--';
+
+                            const editStart = toH(editBooking.startTime);
+                            const editEnd   = toH(editBooking.endTime);
+
+                            // Tính overlap client-side — cảnh báo ngay khi admin đổi giờ
+                            const conflicts = sameRoomBookings.filter(b => {
+                                const bStart = toH(b.startTime);
+                                const bEnd   = toH(b.endTime);
+                                return editStart < bEnd && editEnd > bStart;
+                            });
+                            const hasOverlap = conflicts.length > 0;
+                            const COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#8b5cf6'];
+
+                            return (
+                                <>
+                                    {sameRoomBookings.length > 0 && (
+                                        <div style={{ marginBottom: 14 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
+                                                📋 Đơn khác cùng phòng ngày này ({sameRoomBookings.length})
+                                            </div>
+                                            {/* Timeline 08:00 → 22:00 */}
+                                            <div style={{ position: 'relative', height: 28, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', marginBottom: 4 }}>
+                                                {sameRoomBookings.map((b, i) => {
+                                                    const s = Math.max(toH(b.startTime), 8);
+                                                    const e = Math.min(toH(b.endTime), 22);
+                                                    const isConflict = conflicts.some(c => c.bookingId === b.bookingId);
+                                                    return (
+                                                        <div key={b.bookingId}
+                                                             title={`${b.userName} — ${toHHMM(b.startTime)} → ${toHHMM(b.endTime)}`}
+                                                             style={{
+                                                                 position: 'absolute', top: 4, height: 20,
+                                                                 left: ((s - 8) / 14 * 100) + '%',
+                                                                 width: ((e - s) / 14 * 100) + '%',
+                                                                 background: COLORS[i % COLORS.length],
+                                                                 borderRadius: 4, opacity: 0.9,
+                                                                 outline: isConflict ? '2px solid #dc2626' : 'none',
+                                                             }}
+                                                        />
+                                                    );
+                                                })}
+                                                {/* Đơn đang chỉnh sửa */}
+                                                {(() => {
+                                                    const s = Math.max(editStart, 8);
+                                                    const e = Math.min(editEnd, 22);
+                                                    return (
+                                                        <div title={`Đơn đang sửa: ${toHHMM(editBooking.startTime)} → ${toHHMM(editBooking.endTime)}`}
+                                                             style={{
+                                                                 position: 'absolute', top: 4, height: 20,
+                                                                 left: ((s - 8) / 14 * 100) + '%',
+                                                                 width: ((e - s) / 14 * 100) + '%',
+                                                                 background: hasOverlap ? '#dc2626' : '#003db5',
+                                                                 borderRadius: 4, opacity: 0.9,
+                                                                 border: `2px solid ${hasOverlap ? '#7f1d1d' : '#001f7a'}`,
+                                                             }}
+                                                        />
+                                                    );
+                                                })()}
+                                            </div>
+                                            {/* Nhãn giờ */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginBottom: 8 }}>
+                                                {[8,10,12,14,16,18,20,22].map(h => <span key={h}>{String(h).padStart(2,'0')}:00</span>)}
+                                            </div>
+                                            {/* Chú thích */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                                <span style={{ display:'inline-block', width:10, height:10, borderRadius:2, background: hasOverlap ? '#dc2626' : '#003db5', border:`1.5px solid ${hasOverlap ? '#7f1d1d' : '#001f7a'}` }}></span>
+                                                <span style={{ fontSize:11, color: hasOverlap ? '#dc2626' : '#003db5', fontWeight:700 }}>Đơn đang sửa</span>
+                                                {sameRoomBookings.map((b, i) => (
+                                                    <React.Fragment key={b.bookingId}>
+                                                        <span style={{ display:'inline-block', width:10, height:10, borderRadius:2, background:COLORS[i % COLORS.length] }}></span>
+                                                        <span style={{ fontSize:11, color: conflicts.some(c=>c.bookingId===b.bookingId) ? '#dc2626' : '#64748b', fontWeight: conflicts.some(c=>c.bookingId===b.bookingId) ? 700 : 400 }}>
+                                                        {b.userName} ({toHHMM(b.startTime)}–{toHHMM(b.endTime)})
+                                                    </span>
+                                                    </React.Fragment>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Cảnh báo khi overlap */}
+                                    {hasOverlap && (
+                                        <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#dc2626', marginBottom: 14, fontWeight: 600 }}>
+                                            🚫 Khung giờ {toHHMM(editBooking.startTime)}–{toHHMM(editBooking.endTime)} bị trùng với: {conflicts.map(c => `${c.userName} (${toHHMM(c.startTime)}–${toHHMM(c.endTime)})`).join(', ')}. Không thể lưu.
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        <button onClick={() => { setEditBooking(null); setSameRoomBookings([]); }}
+                                                style={{ flex: 1, padding: '10px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                            Hủy
+                                        </button>
+                                        <button
+                                            disabled={hasOverlap || actionLoading}
+                                            onClick={async () => {
+                                                setActionLoading(true);
+                                                try {
+                                                    await axiosInstance.put(`/admin/bookings/${editBooking.bookingId}`, {
+                                                        startTime: editBooking.startTime,
+                                                        endTime: editBooking.endTime,
+                                                    });
+                                                    showToast('Đã cập nhật đơn thành công.');
+                                                    setEditBooking(null);
+                                                    setSameRoomBookings([]);
+                                                    setSelectedBooking(null);
+                                                    fetchBookings();
+                                                } catch (err) {
+                                                    showToast(err.response?.data?.message || 'Cập nhật thất bại.', false);
+                                                } finally { setActionLoading(false); }
+                                            }}
+                                            style={{ flex: 2, padding: '10px', background: hasOverlap ? '#94a3b8' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: hasOverlap ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                                            {hasOverlap ? '🚫 Bị trùng giờ' : 'Lưu thay đổi'}
+                                        </button>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
@@ -819,7 +964,25 @@ function AdminBookingManager() {
                             )}
                             {selectedBooking.status === 'PENDING_PAYMENT' && (
                                 <>
-                                    <button onClick={() => setEditBooking({ ...selectedBooking })} style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                                    <button onClick={async () => {
+                                        setEditBooking({ ...selectedBooking });
+                                        // Fetch tất cả đơn cùng phòng trong ngày để hiển thị trong modal
+                                        try {
+                                            const bookingDate = selectedBooking.startTime?.split('T')[0];
+                                            const result = await adminGetAllBookings({
+                                                roomKeyword: selectedBooking.roomName,
+                                                dateFrom: bookingDate,
+                                                dateTo: bookingDate,
+                                                size: 50,
+                                            });
+                                            // Loại trừ đơn đang chỉnh sửa và các đơn đã hủy/hết hạn
+                                            const others = (result.content || []).filter(b =>
+                                                b.bookingId !== selectedBooking.bookingId &&
+                                                b.status !== 'CANCELLED' && b.status !== 'EXPIRED'
+                                            );
+                                            setSameRoomBookings(others);
+                                        } catch { setSameRoomBookings([]); }
+                                    }} style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
                                         Chỉnh sửa
                                     </button>
                                     <button onClick={() => handleConfirm(selectedBooking.bookingId)} disabled={actionLoading}
@@ -942,7 +1105,7 @@ function AdminSpaceCoordinator() {
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
     // Amenities (checkbox) — dùng array names
-    const ALL_AMENITIES = ['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Máy lạnh', 'Nước uống'];
+    const ALL_AMENITIES = ['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống', 'Bãi xe'];
     const editAmenityNames = editRoom?.amenities?.map(a => a.name || a) || [];
 
     const toggleAmenity = (name) => {
@@ -1038,7 +1201,7 @@ function AdminSpaceCoordinator() {
                             <div style={{ marginBottom: 14 }}>
                                 <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Tiện ích</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                                    {['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống'].map(name => (
+                                    {['TV', 'Máy chiếu', 'Whiteboard', 'Wi-Fi', 'Điều hòa', 'Nước uống', 'Bãi xe'].map(name => (
                                         <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
                                             <input type="checkbox" checked={addAmenityNames.includes(name)} onChange={() => toggleAddAmenity(name)} style={{ accentColor: '#003db5', width: 15, height: 15 }} />
                                             {name}

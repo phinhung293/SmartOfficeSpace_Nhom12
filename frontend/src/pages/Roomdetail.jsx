@@ -6,16 +6,13 @@ import "./css/Roomdetail.css";
 
 /* ─── amenity icon map ─── */
 const AMENITY_MAP = {
-    "WIFI":       { icon: "fa-wifi",           label: "Wi-Fi"      },
-    "Wi-Fi":      { icon: "fa-wifi",           label: "Wi-Fi"      },
-    "TV":         { icon: "fa-tv",             label: "TV"         },
-    "Máy chiếu":  { icon: "fa-film",           label: "Máy chiếu"  },
-    "Whiteboard": { icon: "fa-chalkboard",     label: "Whiteboard" },
-    "Máy lạnh":   { icon: "fa-snowflake",      label: "Máy lạnh"   },
-    "Nước uống":  { icon: "fa-glass-water",    label: "Nước uống"  },
-    "Điều hòa":   { icon: "fa-temperature-low","label": "Điều hòa" },
-    "Bãi xe":     { icon: "fa-square-parking", label: "Bãi xe"     },
-    "Nước/Đồ ăn":{ icon: "fa-utensils",       label: "Nước/Đồ ăn" },
+    "Wi-Fi":      { icon: "fa-wifi",            label: "Wi-Fi"      },
+    "TV":         { icon: "fa-tv",              label: "TV"         },
+    "Máy chiếu":  { icon: "fa-film",            label: "Máy chiếu"  },
+    "Whiteboard": { icon: "fa-chalkboard",      label: "Whiteboard" },
+    "Điều hòa":   { icon: "fa-temperature-low", label: "Điều hòa"   },
+    "Nước uống":  { icon: "fa-glass-water",     label: "Nước uống"  },
+    "Bãi xe":     { icon: "fa-square-parking",  label: "Bãi xe"     },
 };
 
 const TYPE_STYLE = {
@@ -64,8 +61,19 @@ export default function RoomDetail() {
     if (loading) return <div className="rd-loading"><i className="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>;
     if (!room)   return <div className="rd-loading">Không tìm thấy phòng.</div>;
 
-    const isAvail = status === "Available" || room.roomStatus?.toLowerCase() === "available";
-    const statusLabel = isAvail ? "Còn trống" : "Đang bận";
+    // Backend trả về "Còn trống" / "Đang bận" (tiếng Việt) — kiểm tra cả hai ngôn ngữ để an toàn
+    const isMaintenance = room.roomStatus?.toLowerCase() === "maintenance"
+        || room.roomStatus === "Bảo trì"
+        || room.roomStatus?.toLowerCase() === "bảo trì";
+    // realtimeStatus từ /api/rooms/{id}/status trả về "Còn trống" hoặc "Đang bận"
+    // roomStatus từ DB có thể là "Còn trống", "Available", "Bảo trì"...
+    const realtimeAvail = status === "Còn trống" || status === "Available";
+    const dbAvail = room.roomStatus === "Còn trống"
+        || room.roomStatus?.toLowerCase() === "available"
+        || room.roomStatus?.toLowerCase() === "còn trống";
+    // Nếu đang bảo trì → không khả dụng; nếu không → ưu tiên realtime status
+    const isAvail = !isMaintenance && (status != null ? realtimeAvail : dbAvail);
+    const statusLabel = isAvail ? "Còn trống" : isMaintenance ? "Bảo trì" : "Đang bận";
     const { label: typeLabel, cls: typeCls } = TYPE_STYLE[room.workspaceType] || { label: room.workspaceType, cls: "tag-default" };
     const descFull  = room.description || "";
     const descShort = descFull.length > 200 ? descFull.slice(0, 200) : descFull;
@@ -124,9 +132,12 @@ export default function RoomDetail() {
 
                         <div className="rd-price-row">
                             <span className="rd-price">{Number(room.price).toLocaleString("vi-VN")}đ/giờ</span>
-                            <button className="rd-book-btn"
-                                    onClick={() => navigate(`/booking/${room.roomId}`)}>
-                                Đặt phòng ngay
+                            <button
+                                className="rd-book-btn"
+                                disabled={!isAvail}
+                                style={!isAvail ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                                onClick={() => isAvail && navigate(`/booking/${room.roomId}`)}>
+                                {isMaintenance ? '🔧 Đang bảo trì' : !isAvail ? 'Phòng không khả dụng' : 'Đặt phòng ngay'}
                             </button>
                         </div>
                     </div>
