@@ -29,7 +29,7 @@ import Spaces         from './pages/Spaces';
 import RoomDetail     from './pages/Roomdetail';
 import Booking        from './pages/Booking';
 import Payment        from './pages/Payment';        // Trang thanh toán mới gộp từ nhánh booking
-import BookingSuccess from './pages/BookingSuccess'; // Có thể dùng component build sẵn bên dưới hoặc import tùy cấu trúc nhóm
+
 
 // Component tạm cho trang chủ
 const Home = () => <div style={{padding:'100px',textAlign:'center'}}><h2>Trang chủ (Đang phát triển)</h2></div>;

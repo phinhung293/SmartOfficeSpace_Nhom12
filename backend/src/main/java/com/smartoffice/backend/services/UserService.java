@@ -30,7 +30,9 @@ public class UserService {
         }
         return userRepository.findAll();
     }
-
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
     // 2. Thêm người dùng mới
     public void addUser(String name, String email, String phone, String status) {
         if (userRepository.existsByEmail(email)) {

@@ -4,55 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c7cc7990-63df-4126-89a2-ceaa2702993d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/GlobalExceptionHandler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/controllers/BookingController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/booking/BookingRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/booking/BookingResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/booking/SlotStatusResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/room/RoomUpdateRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/BookingStatusRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/scheduler/BookingExpireScheduler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/BookingService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/impl/BookingServiceImpl.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/api/bookingApi.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/BookingHistory.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Payment.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/4ce01cde-ac7d-4d29-be60-419ba3d8562f/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/4ce01cde-ac7d-4d29-be60-419ba3d8562f/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/4ce01cde-ac7d-4d29-be60-419ba3d8562f/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/4ce01cde-ac7d-4d29-be60-419ba3d8562f/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/55ede926-ac7f-4686-8ef3-eb13671aa426/storage_v2/_src_/schema/information_schema.FNRwLQ.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/55ede926-ac7f-4686-8ef3-eb13671aa426/storage_v2/_src_/schema/mysql.osA4Bg.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/55ede926-ac7f-4686-8ef3-eb13671aa426/storage_v2/_src_/schema/performance_schema.kIw0nw.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources/55ede926-ac7f-4686-8ef3-eb13671aa426/storage_v2/_src_/schema/sys.zb4BAA.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/db-forest-config.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/db-forest-config.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/BackendApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/BackendApplication.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/DataInitializer.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/DataInitializer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/JwtUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/component/JwtUtils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/controllers/AdminController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/controllers/AdminController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/room/RoomSearchRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/dto/room/RoomSearchRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Booking.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/entities/Booking.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/BookingRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/repositories/BookingRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/impl/RoomServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/services/impl/RoomServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/specifications/RoomSpecification.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/smartoffice/backend/specifications/RoomSpecification.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/axiosInstance.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/axiosInstance.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Header.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/AdminDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/AdminDashboard.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Booking.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Booking.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Roomdetail.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Roomdetail.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Spaces.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Spaces.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/css/Booking.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/css/Booking.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/css/Roomdetail.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/css/Roomdetail.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/css/Spaces.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/css/Spaces.css" afterDir="false" />
-    </list>
+    <list default="true" id="c7cc7990-63df-4126-89a2-ceaa2702993d" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -88,7 +40,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "git-widget-placeholder": "Merging develop",
+    "git-widget-placeholder": "develop",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
