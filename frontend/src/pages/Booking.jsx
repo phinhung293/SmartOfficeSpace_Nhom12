@@ -1,17 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getRoomDetail } from "../api/roomApi";
+import { getSlotStatus, createBooking } from "../api/bookingApi";
 import "./css/Booking.css";
-import axios from "axios";
-
-const API = "http://localhost:8080/api";
 
 /* ── Tạo các khung giờ từ 08:00 đến 22:00 ── */
 const generateSlots = () => {
     const slots = [];
     for (let h = 8; h < 22; h++) {
-        const s = `${String(h).padStart(2,"0")}:00`;
-        const e = `${String(h+1).padStart(2,"0")}:00`;
+        const s = `${String(h).padStart(2, "0")}:00`;
+        const e = `${String(h + 1).padStart(2, "0")}:00`;
         slots.push({ label: `${s} - ${e}`, start: s, end: e });
     }
     return slots;
@@ -19,123 +17,176 @@ const generateSlots = () => {
 const ALL_SLOTS = generateSlots();
 
 /* ── Format tiền VND ── */
-const vnd = n => Number(n).toLocaleString("vi-VN");
+const vnd = (n) => Number(n).toLocaleString("vi-VN");
 
-/* ── Map type sang tiếng Việt ── */
+/* ── Map loại không gian sang tiếng Việt đầy đủ ── */
 const TYPE_LABEL = {
-    "Phòng họp":      "Phòng họp",
-    "Phòng làm việc": "Phòng làm việc",
-    "Coworking":      "Coworking",
-    "Meeting Room":   "Phòng họp",
-    "Private Office": "Phòng làm việc",
+    "Meeting Room": "Phòng họp",
+    "Private Office": "Phòng làm việc riêng",
+    "Coworking": "Coworking",
+    "Virtual Office": "Văn phòng ảo",
+    "Studio": "Studio",
+    "Training Room": "Phòng đào tạo",
+    "Phòng họp": "Phòng họp",
+    "Phòng làm việc": "Phòng làm việc riêng"
 };
 
 export default function Booking() {
     const { roomId } = useParams();
-    const navigate   = useNavigate();
+    const navigate = useNavigate();
 
-    const [room,         setRoom]         = useState(null);
-    const [loading,      setLoading]      = useState(true);
-    const [selectedDate, setSelectedDate] = useState(() => {
-        const d = new Date();
-        return d.toISOString().slice(0,10);
-    });
+    const [room, setRoom] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(() =>
+        new Date().toISOString().slice(0, 10)
+    );
     const [selectedSlots, setSelectedSlots] = useState([]);
-    const [bookedSlots,   setBookedSlots]   = useState([]);
-    const [maintSlots,    setMaintSlots]    = useState([]);
-    const [submitting,    setSubmitting]    = useState(false);
-    const [errorMsg,      setErrorMsg]      = useState("");
+    const [bookedSlots, setBookedSlots] = useState([]);
+    const [lockedSlots, setLockedSlots] = useState([]);
+    const [maintSlots, setMaintSlots] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
-    /* ── Load room ── */
+    /* ── Load chi tiết phòng và kiểm tra trạng thái khả dụng ── */
     useEffect(() => {
         (async () => {
-            try { setRoom(await getRoomDetail(roomId)); }
-            catch (e) { console.error(e); }
-            finally { setLoading(false); }
+            try {
+                const r = await getRoomDetail(roomId);
+                setRoom(r);
+
+                // Chặn đặt phòng nếu cấu hình phòng đang bảo trì
+                const s = r?.roomStatus?.toLowerCase();
+                if (s && (s === "bảo trì" || s === "maintenance")) {
+                    setErrorMsg("Phòng hiện không khả dụng để đặt do đang bảo trì. Vui lòng chọn phòng khác.");
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
         })();
     }, [roomId]);
 
-    /* ── Load booked slots for selected date ── */
-    useEffect(() => {
+    /* ── Tải danh sách slot trạng thái thời gian thực từ Backend ── */
+    const loadSlots = useCallback(async () => {
         if (!selectedDate) return;
-        (async () => {
-            try {
-                const res = await axios.get(`${API}/bookings/slots`, {
-                    params: { roomId, date: selectedDate }
-                });
-                const data = res.data || {};
-                setBookedSlots(data.booked || []);
-                setMaintSlots(data.maintenance || []);
-            } catch {
-                setBookedSlots([]); setMaintSlots([]);
-            }
-            setSelectedSlots([]);
-        })();
+        try {
+            const data = await getSlotStatus(roomId, selectedDate);
+            setBookedSlots(data.booked || []);
+            setLockedSlots(data.locked || []);
+            setMaintSlots(data.maintenance || []);
+        } catch {
+            setBookedSlots([]);
+            setLockedSlots([]);
+            setMaintSlots([]);
+        }
+        setSelectedSlots([]);
     }, [selectedDate, roomId]);
 
-    /* ── Toggle slot (phải liên tiếp) ── */
+    useEffect(() => {
+        loadSlots();
+        // Cơ chế đồng bộ: Tự động tải lại mỗi 30 giây để cập nhật trạng thái giữ chỗ của người khác
+        const interval = setInterval(loadSlots, 30_000);
+        return () => clearInterval(interval);
+    }, [loadSlots]);
+
+    /* ── Xử lý chọn slot (Ràng buộc các ô phải liên tục nhau) ── */
     const toggleSlot = (idx) => {
-        if (bookedSlots.includes(idx) || maintSlots.includes(idx)) return;
-        setSelectedSlots(prev => {
+        if (
+            bookedSlots.includes(idx) ||
+            lockedSlots.includes(idx) ||
+            maintSlots.includes(idx)
+        )
+            return;
+
+        setSelectedSlots((prev) => {
             if (prev.includes(idx)) {
-                const newList = prev.filter(i => i !== idx);
+                const newList = prev.filter((i) => i !== idx);
                 if (newList.length === 0) return [];
-                const sorted = [...newList].sort((a,b)=>a-b);
-                const isConsec = sorted.every((v,i,a) => i===0 || v === a[i-1]+1);
+                const sorted = [...newList].sort((a, b) => a - b);
+                const isConsec = sorted.every(
+                    (v, i, a) => i === 0 || v === a[i - 1] + 1
+                );
                 return isConsec ? newList : [];
             }
-            const newList = [...prev, idx].sort((a,b)=>a-b);
-            const isConsec = newList.every((v,i,a) => i===0 || v === a[i-1]+1);
-            if (!isConsec) return [idx];
-            return newList;
+            const newList = [...prev, idx].sort((a, b) => a - b);
+            const isConsec = newList.every(
+                (v, i, a) => i === 0 || v === a[i - 1] + 1
+            );
+            return isConsec ? newList : [idx];
         });
         setErrorMsg("");
     };
 
-    /* ── Tính tiền ── */
+    /* ── Tính toán chi phí đơn đặt ── */
     const hours = selectedSlots.length;
     const pricePerHour = Number(room?.price || 0);
     const subtotal = hours * pricePerHour;
-    const serviceFee = Math.round(subtotal * 0.05);
+    const serviceFee = 0; // Phí dịch vụ xử lý gộp ở Backend
     const total = subtotal + serviceFee;
 
-    /* ── Thời gian đặt ── */
     const getTimeRange = () => {
         if (selectedSlots.length === 0) return null;
-        const sorted = [...selectedSlots].sort((a,b)=>a-b);
+        const sorted = [...selectedSlots].sort((a, b) => a - b);
         return {
             start: ALL_SLOTS[sorted[0]].start,
-            end:   ALL_SLOTS[sorted[sorted.length-1]].end,
+            end: ALL_SLOTS[sorted[sorted.length - 1]].end,
         };
     };
 
-    /* ── Submit: kiểm tra đăng nhập tại đây, không phải tại route ── */
+    /* ── Submit tạo đơn đặt phòng hoặc điều hướng login ── */
     const handleSubmit = async () => {
         if (selectedSlots.length === 0) {
             setErrorMsg("Vui lòng chọn ít nhất một khung giờ.");
             return;
         }
 
-        // Kiểm tra đăng nhập chỉ khi bấm "Tiếp tục thanh toán"
-        const userStr = localStorage.getItem("user");
-        const token   = localStorage.getItem("token");
-        let user = null;
-        try { user = userStr ? JSON.parse(userStr) : null; } catch {}
-
-        if (!user?.userId || !token) {
-            // Lưu lại trang hiện tại để redirect về sau khi đăng nhập
+        const token = localStorage.getItem("token");
+        if (!token) {
+            // Lưu trang hiện tại để tự quay lại sau khi login thành công
             sessionStorage.setItem("redirectAfterLogin", `/booking/${roomId}`);
-            navigate("/login");
+            navigate("/login", {
+                state: { message: "Vui lòng đăng nhập để thực hiện đặt phòng." },
+            });
             return;
         }
 
-        // Thông báo trang thanh toán chưa hoàn thiện
-        alert("⚠️ Trang thanh toán hiện chưa hoàn thiện.\n\nChúng tôi đang phát triển tính năng này và sẽ sớm cập nhật. Xin lỗi vì sự bất tiện!");
+        const tr = getTimeRange();
+        if (!tr) return;
+
+        setSubmitting(true);
+        setErrorMsg("");
+
+        try {
+            // Gọi API lưu xuống DB đồng thời kích hoạt Pessimistic Lock ở Backend
+            const booking = await createBooking({
+                roomId: Number(roomId),
+                date: selectedDate,
+                startTime: tr.start + ":00",
+                endTime: tr.end + ":00",
+            });
+
+            // Chuyển tiếp sang trang Payment kèm Object thông tin hóa đơn
+            navigate("/payment", { state: { booking } });
+        } catch (err) {
+            const msg =
+                err.response?.data?.message ||
+                "Đặt phòng thất bại hoặc khung giờ đã bị người khác chọn trước. Vui lòng thử lại.";
+            setErrorMsg(msg);
+            loadSlots(); // Refresh tải lại lưới giờ để tránh ấn trùng
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    /* ── Render ── */
-    if (loading) return <div className="bk-loading"><i className="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>;
-    if (!room)   return <div className="bk-loading">Không tìm thấy phòng.</div>;
+    if (loading)
+        return (
+            <div className="bk-loading">
+                <i className="fa-solid fa-spinner fa-spin"></i> Đang tải thông tin không gian...
+            </div>
+        );
+    if (!room)
+        return <div className="bk-loading">Không tìm thấy thông tin phòng yêu cầu.</div>;
 
     const typeLabel = TYPE_LABEL[room.workspaceType] || room.workspaceType;
     const tr = getTimeRange();
@@ -144,116 +195,162 @@ export default function Booking() {
         <div className="bk-page">
             {/* Breadcrumb */}
             <div className="bk-breadcrumb">
-                <span className="bk-bc-a" onClick={() => navigate("/")}>Trang chủ</span>
+                <span className="bk-bc-a" onClick={() => navigate("/")}>
+                    Trang chủ
+                </span>
                 <span className="bk-bc-sep"> &gt; </span>
-                <span className="bk-bc-a" onClick={() => navigate("/spaces")}>Không gian</span>
+                <span className="bk-bc-a" onClick={() => navigate("/spaces")}>
+                    Không gian
+                </span>
                 <span className="bk-bc-sep"> &gt; </span>
                 <span>Đặt phòng</span>
-            </div>
-
-            {/* Banner thông báo trang chưa hoàn thiện */}
-            <div className="bk-dev-banner">
-                <i className="fa-solid fa-triangle-exclamation"></i>
-                &nbsp; Trang thanh toán hiện <strong>chưa hoàn thiện</strong>. Bạn có thể chọn giờ và xem chi tiết đặt phòng, nhưng chức năng thanh toán thực tế đang được phát triển.
             </div>
 
             <div className="bk-container">
                 <h1 className="bk-title">Đặt phòng</h1>
 
                 <div className="bk-layout">
-                    {/* ── LEFT PANEL ── */}
+                    {/* ── LEFT PANEL: Chọn thông tin giờ ── */}
                     <div className="bk-left">
-                        {/* Room header */}
                         <div className="bk-room-header">
                             <div className="bk-room-img-wrap">
-                                {room.imageUrl
-                                    ? <img src={room.imageUrl} alt={room.name} className="bk-room-img"/>
-                                    : <div className="bk-room-img-ph"/>}
+                                {room.imageUrl ? (
+                                    <img
+                                        src={room.imageUrl}
+                                        alt={room.name}
+                                        className="bk-room-img"
+                                    />
+                                ) : (
+                                    <div className="bk-room-img-ph" />
+                                )}
                             </div>
                             <div className="bk-room-meta">
                                 <div className="bk-room-name">{room.name}</div>
                                 <span className="bk-room-tag">{typeLabel}</span>
                                 <div className="bk-room-detail">
-                                    <i className="fa-solid fa-user-group"></i> Sức chứa: {room.capacity} người
+                                    <i className="fa-solid fa-user-group"></i>{" "}
+                                    Sức chứa: {room.capacity} người
                                 </div>
                                 {room.location && (
                                     <div className="bk-room-detail">
-                                        <i className="fa-solid fa-location-dot"></i> {room.location}
+                                        <i className="fa-solid fa-location-dot"></i>{" "}
+                                        {room.location}
                                     </div>
                                 )}
                                 {room.openTime && room.closeTime && (
                                     <div className="bk-room-detail">
-                                        <i className="fa-regular fa-clock"></i> {room.openTime?.slice(0,5)} – {room.closeTime?.slice(0,5)}
+                                        <i className="fa-regular fa-clock"></i>{" "}
+                                        {room.openTime?.slice(0, 5)} – {room.closeTime?.slice(0, 5)}
                                     </div>
                                 )}
                                 {room.amenities?.length > 0 && (
                                     <div className="bk-room-detail">
-                                        <i className="fa-solid fa-star"></i> Tiện ích: {room.amenities.join(", ")}
+                                        <i className="fa-solid fa-star"></i>{" "}
+                                        Tiện ích: {room.amenities.join(", ")}
                                     </div>
                                 )}
-                                <button className="bk-view-link"
-                                        onClick={() => navigate(`/spaces/${roomId}`)}>
+                                <button
+                                    className="bk-view-link"
+                                    onClick={() => navigate(`/spaces/${roomId}`)}
+                                >
                                     Xem chi tiết
                                 </button>
                             </div>
-                            {/* Date picker */}
                             <div className="bk-date-wrap">
-                                <label className="bk-date-label">Ngày</label>
+                                <label className="bk-date-label">Ngày đặt</label>
                                 <div className="bk-date-input-wrap">
                                     <i className="fa-regular fa-calendar bk-date-icon"></i>
-                                    <input type="date" className="bk-date-input"
-                                           value={selectedDate}
-                                           min={new Date().toISOString().slice(0,10)}
-                                           onChange={e => setSelectedDate(e.target.value)} />
+                                    <input
+                                        type="date"
+                                        className="bk-date-input"
+                                        value={selectedDate}
+                                        min={new Date().toISOString().slice(0, 10)}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Slot picker */}
+                        {/* Thẻ lưới chọn khung giờ */}
                         <div className="bk-slots-wrap">
                             <div className="bk-slots-title">Chọn khung giờ</div>
+
+                            {/* Bảng chú thích màu sắc (Legend từ nhánh booking) */}
+                            <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 13, flexWrap: "wrap" }}>
+                                <span><span style={{ display: "inline-block", width: 12, height: 12, background: "#e2e8f0", borderRadius: 3, marginRight: 4 }}></span>Trống</span>
+                                <span><span style={{ display: "inline-block", width: 12, height: 12, background: "#003db5", borderRadius: 3, marginRight: 4 }}></span>Đang chọn</span>
+                                <span><span style={{ display: "inline-block", width: 12, height: 12, background: "#ef4444", borderRadius: 3, marginRight: 4 }}></span>Đã đặt</span>
+                                <span><span style={{ display: "inline-block", width: 12, height: 12, background: "#f59e0b", borderRadius: 3, marginRight: 4 }}></span>Đang giữ chỗ</span>
+                                <span><span style={{ display: "inline-block", width: 12, height: 12, background: "#94a3b8", borderRadius: 3, marginRight: 4 }}></span>Bảo trì</span>
+                            </div>
+
                             <div className="bk-slots-grid">
                                 {ALL_SLOTS.map((slot, idx) => {
                                     const isBooked = bookedSlots.includes(idx);
-                                    const isMaint  = maintSlots.includes(idx);
-                                    const isSel    = selectedSlots.includes(idx);
+                                    const isLocked = lockedSlots.includes(idx);
+                                    const isMaint = maintSlots.includes(idx);
+                                    const isSel = selectedSlots.includes(idx);
                                     let cls = "bk-slot";
                                     if (isBooked) cls += " slot-booked";
+                                    else if (isLocked) cls += " slot-locked";
                                     else if (isMaint) cls += " slot-maint";
                                     else if (isSel) cls += " slot-sel";
                                     return (
-                                        <div key={idx} className={cls}
-                                             onClick={() => toggleSlot(idx)}>
-                                            <div className="bk-slot-time">{slot.label}</div>
-                                            {isBooked
-                                                ? <div className="bk-slot-sub"><i className="fa-solid fa-lock"></i> Đã được đặt</div>
-                                                : isMaint
-                                                    ? <div className="bk-slot-sub"><i className="fa-solid fa-wrench"></i> Bảo trì</div>
-                                                    : <div className="bk-slot-sub">{vnd(pricePerHour)}đ</div>
-                                            }
+                                        <div
+                                            key={idx}
+                                            className={cls}
+                                            onClick={() => toggleSlot(idx)}
+                                        >
+                                            <div className="bk-slot-time">
+                                                {slot.label}
+                                            </div>
+                                            {isBooked ? (
+                                                <div className="bk-slot-sub">
+                                                    <i className="fa-solid fa-lock"></i> Đã được đặt
+                                                </div>
+                                            ) : isLocked ? (
+                                                <div className="bk-slot-sub">
+                                                    <i className="fa-solid fa-hourglass-half"></i> Đang giữ chỗ
+                                                </div>
+                                            ) : isMaint ? (
+                                                <div className="bk-slot-sub">
+                                                    <i className="fa-solid fa-wrench"></i> Bảo trì
+                                                </div>
+                                            ) : (
+                                                <div className="bk-slot-sub">
+                                                    {vnd(pricePerHour)}đ
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
                             </div>
                             <p className="bk-hint">
-                                <i className="fa-solid fa-circle-info" style={{color:"#003db5",marginRight:6}}></i>
-                                Chỉ có thể chọn những khung giờ liền nhau. Không thể chọn rời rạc!
+                                <i className="fa-solid fa-circle-info" style={{ color: "#003db5", marginRight: 6 }}></i>
+                                Chỉ có thể chọn những khung giờ liền nhau trong một ngày.
                             </p>
                         </div>
                     </div>
 
-                    {/* ── RIGHT PANEL – Booking summary ── */}
+                    {/* ── RIGHT PANEL: Hóa đơn tóm tắt đặt phòng ── */}
                     <div className="bk-right">
                         <div className="bk-summary">
                             <div className="bk-sum-title">Thông tin đặt phòng</div>
-                            <p className="bk-sum-sub">Vui lòng kiểm tra thông tin đặt phòng trước khi tiếp tục</p>
+                            <p className="bk-sum-sub">
+                                Vui lòng kiểm tra thông tin chính xác trước khi tiếp tục
+                            </p>
 
-                            {/* Room preview */}
                             <div className="bk-sum-room">
                                 <div className="bk-sum-img-wrap">
-                                    {room.imageUrl
-                                        ? <img src={room.imageUrl} alt={room.name} className="bk-sum-img"/>
-                                        : <div className="bk-sum-img-ph"/>}
+                                    {room.imageUrl ? (
+                                        <img
+                                            src={room.imageUrl}
+                                            alt={room.name}
+                                            className="bk-sum-img"
+                                        />
+                                    ) : (
+                                        <div className="bk-sum-img-ph" />
+                                    )}
                                 </div>
                                 <div className="bk-sum-room-info">
                                     <div className="bk-sum-room-name">{room.name}</div>
@@ -269,30 +366,36 @@ export default function Booking() {
                                 </div>
                             </div>
 
-                            {/* Time info */}
                             <div className="bk-sum-section">
                                 <div className="bk-sum-section-title">Thời gian đặt</div>
                                 <div className="bk-sum-row">
-                                    <span><i className="fa-regular fa-calendar"></i> Ngày</span>
-                                    <span className="bk-sum-val">{selectedDate || "—"}</span>
+                                    <span>
+                                        <i className="fa-regular fa-calendar"></i> Ngày
+                                    </span>
+                                    <span className="bk-sum-val">
+                                        {selectedDate || "—"}
+                                    </span>
                                 </div>
                                 <div className="bk-sum-row">
-                                    <span><i className="fa-regular fa-clock"></i> Thời gian</span>
+                                    <span>
+                                        <i className="fa-regular fa-clock"></i> Thời gian
+                                    </span>
                                     <span className="bk-sum-val">
                                         {tr ? `${tr.start} – ${tr.end} (${hours} giờ)` : "Chưa chọn"}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Payment breakdown */}
                             <div className="bk-sum-section">
-                                <div className="bk-sum-section-title">Chi tiết thanh toán</div>
+                                <div className="bk-sum-section-title">
+                                    Chi tiết thanh toán
+                                </div>
                                 <div className="bk-sum-row">
                                     <span>Đơn giá</span>
                                     <span>{vnd(pricePerHour)}đ/giờ</span>
                                 </div>
                                 <div className="bk-sum-row">
-                                    <span>Thời gian</span>
+                                    <span>Thời gian làm việc</span>
                                     <span>{hours} giờ</span>
                                 </div>
                                 <div className="bk-sum-row">
@@ -300,30 +403,33 @@ export default function Booking() {
                                     <span>{vnd(subtotal)}đ</span>
                                 </div>
                                 <div className="bk-sum-row">
-                                    <span>Phí dịch vụ (5%)</span>
-                                    <span>{vnd(serviceFee)}đ</span>
+                                    <span>Phí dịch vụ hệ thống</span>
+                                    <span style={{ color: "#1a7f3c", fontWeight: "600" }}>Miễn phí</span>
                                 </div>
                             </div>
 
                             <div className="bk-sum-total-row">
-                                <span className="bk-sum-total-label">Tổng tiền</span>
+                                <span className="bk-sum-total-label">Tổng tiền thanh toán</span>
                                 <span className="bk-sum-total-val">{vnd(total)}đ</span>
                             </div>
 
-                            {errorMsg && <div className="bk-error">⚠️ {errorMsg}</div>}
+                            {errorMsg && (
+                                <div className="bk-error">⚠️ {errorMsg}</div>
+                            )}
 
-                            <button className="bk-submit-btn"
-                                    disabled={submitting || selectedSlots.length === 0}
-                                    onClick={handleSubmit}>
-                                {submitting
-                                    ? <><i className="fa-solid fa-spinner fa-spin"></i> Đang xử lý...</>
-                                    : "TIẾP TỤC THANH TOÁN"}
+                            <button
+                                className="bk-submit-btn"
+                                disabled={submitting || selectedSlots.length === 0 || !!errorMsg}
+                                onClick={handleSubmit}
+                            >
+                                {submitting ? (
+                                    <>
+                                        <i className="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo hóa đơn...
+                                    </>
+                                ) : (
+                                    "TIẾP TỤC ĐẾN THANH TOÁN"
+                                )}
                             </button>
-
-                            <p className="bk-payment-notice">
-                                <i className="fa-solid fa-circle-info"></i>
-                                &nbsp;Tính năng thanh toán đang được phát triển
-                            </p>
                         </div>
                     </div>
                 </div>

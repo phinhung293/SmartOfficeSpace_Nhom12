@@ -77,11 +77,15 @@
     border:1.5px solid #d8dde6; border-radius:10px; padding:10px 12px;
     cursor:pointer; transition:all .18s; background:#fff; text-align:center;
 }
-.bk-slot:hover:not(.slot-booked):not(.slot-maint) {
+/* Tránh kích hoạt hover sai màu lên các ô đang bị giữ chỗ hoặc khóa hệ thống */
+.bk-slot:hover:not(.slot-booked):not(.slot-maint):not(.slot-locked) {
     border-color:#003db5; background:#eef2ff;
 }
-.slot-sel   { background:#003db5; border-color:#003db5; color:#fff; }
-.slot-booked { background:#f7f7f7; border-color:#e0e0e0; cursor:not-allowed; color:#bbb; }
+.slot-sel    { background:#003db5; border-color:#003db5; color:#fff; }
+
+/* Cấu hình màu sắc trạng thái rõ ràng của nhánh booking */
+.slot-booked { background:#fee2e2; border-color:#fca5a5; cursor:not-allowed; color:#ef4444; }
+.slot-locked { background:#fef3c7; border-color:#fcd34d; cursor:not-allowed; color:#b45309; }
 .slot-maint  { background:#fff8f0; border-color:#ffc580; cursor:not-allowed; color:#b56a00; }
 
 .bk-slot-time { font-size:13px; font-weight:600; }

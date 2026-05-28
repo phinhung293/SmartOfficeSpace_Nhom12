@@ -42,13 +42,11 @@
 .rd-tag {
     display:inline-block; padding:3px 12px; border-radius:8px;
     font-size:13px; font-weight:600; margin-bottom:2px;
-    width: 125px;
 }
-
-.tag-meeting   { background:#dfe7ff; color:#003db5; text-align: center; }
-.tag-private   { background:#d5f5e3; color:#1a7f3c; text-align: center;}
-.tag-coworking { background:#fff0d6; color:#b56a00;text-align: center; }
-.tag-default   { background:#eee;    color:#555; text-align: center;}
+.tag-meeting   { background:#dfe7ff; color:#003db5; }
+.tag-private   { background:#d5f5e3; color:#1a7f3c; }
+.tag-coworking { background:#fff0d6; color:#b56a00; }
+.tag-default   { background:#eee;    color:#555; }
 
 .rd-short-desc { font-size:14px; color:#666; line-height:1.6; margin:4px 0; }
 

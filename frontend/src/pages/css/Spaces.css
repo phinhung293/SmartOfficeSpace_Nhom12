@@ -98,6 +98,7 @@
 }
 .badge-ok   { background:#1a7f3c; color:#fff; }
 .badge-busy { background:#e05a00; color:#fff; }
+.badge-maint{ background:#b45309; color:#fff; }
 
 .rc-body { flex:1; padding:18px 20px; }
 .rc-top  { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }

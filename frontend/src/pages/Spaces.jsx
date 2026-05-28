@@ -15,9 +15,9 @@ const TYPE_STYLE = {
 const getTypeStyle = t => TYPE_STYLE[t] || { label: t, cls: "tag-default" };
 
 const AMENITY_OPTIONS = [
-    { id: 1, label: "WIFI" }, { id: 2, label: "Máy chiếu" },
+    { id: 1, label: "Wi-Fi" }, { id: 2, label: "Máy chiếu" },
     { id: 3, label: "TV" },   { id: 4, label: "Whiteboard" },
-    { id: 5, label: "Điều hòa" }, { id: 6, label: "Nước/Đồ ăn" },
+    { id: 5, label: "Điều hòa" }, { id: 6, label: "Nước uống" },
     { id: 7, label: "Bãi xe" },   { id: 8, label: "Khác" },
 ];
 const PRICE_OPTIONS = [
@@ -56,9 +56,7 @@ const SORT_OPTIONS = [
 ];
 
 /* ─────────────────────────── default states ───────────────────────────── */
-// Search state (thanh tìm kiếm trên cùng)
 const DEFAULT_SEARCH = { date: "", time: "", capacity: "" };
-// Filter state (bộ lọc nâng cao)
 const DEFAULT_FILTER = {
     workspaceTypeId: null, minPrice: null, maxPrice: null,
     amenityIds: [], statusId: null, location: "",
@@ -66,12 +64,14 @@ const DEFAULT_FILTER = {
 
 /* ═══════════════════════════ Sub-components ════════════════════════════ */
 
+// Giữ nguyên logic bóc tách trạng thái bảo trì thời gian thực từ nhánh booking
 function StatusBadge({ status }) {
-    const ok = status?.toLowerCase() === "available" || status === "Còn trống";
+    const isMaint = status === "Bảo trì" || status?.toLowerCase() === "maintenance";
+    const isOk    = status?.toLowerCase() === "available" || status === "Còn trống";
+    const cls     = isMaint ? "badge-maint" : isOk ? "badge-ok" : "badge-busy";
+    const label   = isMaint ? "Bảo trì" : isOk ? "Còn trống" : (status || "—");
     return (
-        <span className={`sp-status-badge ${ok ? "badge-ok" : "badge-busy"}`}>
-            {ok ? "Còn trống" : (status || "—")}
-        </span>
+        <span className={`sp-status-badge ${cls}`}>{label}</span>
     );
 }
 
@@ -131,12 +131,14 @@ function Pagination({ current, total, onChange }) {
 function FilterModal({ init, onApply, onClose }) {
     const [local, setLocal] = useState({ ...init });
 
-    const toggleAmenity = id => setLocal(p => ({
+    // Cấu hình đồng bộ tìm kiếm bằng chuỗi Tên của nhánh booking (Khớp với backend)
+    const toggleAmenity = label => setLocal(p => ({
         ...p,
-        amenityIds: p.amenityIds.includes(id)
-            ? p.amenityIds.filter(a => a !== id)
-            : [...p.amenityIds, id],
+        amenityIds: p.amenityIds.includes(label)
+            ? p.amenityIds.filter(a => a !== label)
+            : [...p.amenityIds, label],
     }));
+
     const setPrice = (min, max) => {
         const same = local.minPrice === min && local.maxPrice === max;
         setLocal(p => ({ ...p, minPrice: same ? null : min, maxPrice: same ? null : max }));
@@ -199,8 +201,8 @@ function FilterModal({ init, onApply, onClose }) {
                                 {AMENITY_OPTIONS.map(o => (
                                     <label key={o.id} className="fm-row">
                                         <input type="checkbox" className="fm-check"
-                                               checked={local.amenityIds.includes(o.id)}
-                                               onChange={() => toggleAmenity(o.id)} />
+                                               checked={local.amenityIds.includes(o.label)}
+                                               onChange={() => toggleAmenity(o.label)} />
                                         {o.label}
                                     </label>
                                 ))}
@@ -251,12 +253,10 @@ function FilterModal({ init, onApply, onClose }) {
 export default function Spaces() {
     const navigate = useNavigate();
 
-    // 3 state độc lập: search / filter / sort
     const [search,    setSearch]    = useState({ ...DEFAULT_SEARCH });
     const [filter,    setFilter]    = useState({ ...DEFAULT_FILTER });
-    const [sortKey,   setSortKey]   = useState(""); // index vào SORT_OPTIONS
+    const [sortKey,   setSortKey]   = useState("");
 
-    // UI state
     const [showFilter, setShowFilter] = useState(false);
     const [page,       setPage]       = useState(0);
     const [rooms,      setRooms]      = useState([]);
@@ -264,37 +264,30 @@ export default function Spaces() {
     const [loading,    setLoading]    = useState(false);
     const [errorMsg,   setErrorMsg]   = useState("");
 
-    // Ref để tránh double-fetch khi mount
     const mountedRef = useRef(false);
 
-    /* ── build payload từ cả 3 nguồn ─────────────────────────── */
     const buildPayload = (s, f, sk, pg) => {
         const sortOpt = SORT_OPTIONS[parseInt(sk)] || SORT_OPTIONS[0];
         let startTime = null, endTime = null;
         if (s.time) { [startTime, endTime] = s.time.split("-"); }
         const hasTime = !!(s.date && s.time);
         return {
-            // search
             capacity:   s.capacity ? parseInt(s.capacity) : null,
             date:       hasTime ? s.date        : null,
             startTime:  hasTime ? startTime     : null,
             endTime:    hasTime ? endTime        : null,
-            // filter
             workspaceTypeId: f.workspaceTypeId,
             minPrice:        f.minPrice,
             maxPrice:        f.maxPrice,
             amenityIds:      f.amenityIds.length > 0 ? f.amenityIds : null,
             statusId:        f.statusId,
-            // sort
             sortBy:        sortOpt.value || null,
             sortDirection: sortOpt.dir,
-            // pagination
             page: pg,
             size: 6,
         };
     };
 
-    /* ── fetch ─────────────────────────────────────────────────── */
     const doFetch = async (s, f, sk, pg) => {
         if (s.date && !s.time) { setErrorMsg("Vui lòng chọn thêm thời gian."); return; }
         if (!s.date && s.time) { setErrorMsg("Vui lòng chọn thêm ngày."); return; }
@@ -313,19 +306,16 @@ export default function Spaces() {
         }
     };
 
-    /* ── load khi mount ─────────────────────────────────────────── */
     useEffect(() => {
         doFetch(search, filter, sortKey, page);
         mountedRef.current = true;
     }, []); // eslint-disable-line
 
-    /* ── khi page thay đổi (pagination click) ───────────────────── */
     useEffect(() => {
         if (!mountedRef.current) return;
         doFetch(search, filter, sortKey, page);
     }, [page]); // eslint-disable-line
 
-    /* ── sort thay đổi → reset về trang 0 rồi fetch ─────────────── */
     const handleSortChange = e => {
         const newKey = e.target.value;
         setSortKey(newKey);
@@ -333,20 +323,17 @@ export default function Spaces() {
         doFetch(search, filter, newKey, 0);
     };
 
-    /* ── Tìm kiếm button ─────────────────────────────────────────── */
     const handleSearch = () => {
         setPage(0);
         doFetch(search, filter, sortKey, 0);
     };
 
-    /* ── Áp dụng bộ lọc ─────────────────────────────────────────── */
     const handleApplyFilter = newFilter => {
         setFilter(newFilter);
         setPage(0);
         doFetch(search, newFilter, sortKey, 0);
     };
 
-    /* ── Xóa tất cả ─────────────────────────────────────────────── */
     const handleClearAll = () => {
         const s = { ...DEFAULT_SEARCH };
         const f = { ...DEFAULT_FILTER };
@@ -354,11 +341,8 @@ export default function Spaces() {
         doFetch(s, f, "", 0);
     };
 
-    const activeSortLabel = SORT_OPTIONS[parseInt(sortKey)]?.label || "Mặc định";
-
     return (
         <div className="sp-page">
-            {/* Breadcrumb */}
             <div className="sp-breadcrumb">
                 <span className="sp-bc-link" onClick={() => navigate("/")}>Trang chủ</span>
                 <span className="sp-bc-sep"> &gt; </span>
@@ -368,7 +352,6 @@ export default function Spaces() {
             <div className="sp-container">
                 <h1 className="sp-title">Tìm kiếm</h1>
 
-                {/* ── SEARCH BAR ── */}
                 <div className="sp-searchbar">
                     <div className="sp-sgroup">
                         <label>Ngày</label>
@@ -418,7 +401,6 @@ export default function Spaces() {
 
                 {errorMsg && <div className="sp-error">⚠️ {errorMsg}</div>}
 
-                {/* ── FILTER + CLEAR BAR ── */}
                 <div className="sp-toolbar">
                     <button className="sp-btn-filter" onClick={() => setShowFilter(true)}>
                         <i className="fa-solid fa-sliders"></i> Bộ lọc
@@ -426,7 +408,6 @@ export default function Spaces() {
                     <button className="sp-btn-clear" onClick={handleClearAll}>Xóa bộ lọc</button>
                 </div>
 
-                {/* ── RESULT BAR (label + sort) ── */}
                 <div className="sp-result-bar">
                     <span className="sp-result-label">Các không gian phù hợp</span>
                     <div className="sp-sort-wrap">
@@ -441,10 +422,9 @@ export default function Spaces() {
                     </div>
                 </div>
 
-                {/* ── ROOM LIST ── */}
                 <div className="sp-list">
                     {loading ? (
-                        <div className="sp-state"><i className="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>
+                        <div className="sp-state"><i className="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách...</div>
                     ) : rooms.length === 0 ? (
                         <div className="sp-state">Không tìm thấy phòng phù hợp.</div>
                     ) : rooms.map(room => (

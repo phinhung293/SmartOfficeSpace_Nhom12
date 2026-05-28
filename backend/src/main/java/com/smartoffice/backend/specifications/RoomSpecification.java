@@ -11,13 +11,10 @@ public class RoomSpecification {
 
     // Search theo keyword
     public static Specification<Room> hasKeyword(String keyword) {
-
         return (root, query, cb) -> {
-
             if (keyword == null || keyword.isEmpty()) {
                 return null;
             }
-
             return cb.like(
                     cb.lower(root.get("name")),
                     "%" + keyword.toLowerCase() + "%"
@@ -26,16 +23,11 @@ public class RoomSpecification {
     }
 
     // Giá tối thiểu
-    public static Specification<Room> hasMinPrice(
-            BigDecimal minPrice
-    ) {
-
+    public static Specification<Room> hasMinPrice(BigDecimal minPrice) {
         return (root, query, cb) -> {
-
             if (minPrice == null) {
                 return null;
             }
-
             return cb.greaterThanOrEqualTo(
                     root.get("price"),
                     minPrice
@@ -44,16 +36,11 @@ public class RoomSpecification {
     }
 
     // Giá tối đa
-    public static Specification<Room> hasMaxPrice(
-            BigDecimal maxPrice
-    ) {
-
+    public static Specification<Room> hasMaxPrice(BigDecimal maxPrice) {
         return (root, query, cb) -> {
-
             if (maxPrice == null) {
                 return null;
             }
-
             return cb.lessThanOrEqualTo(
                     root.get("price"),
                     maxPrice
@@ -62,16 +49,11 @@ public class RoomSpecification {
     }
 
     // Capacity
-    public static Specification<Room> hasCapacity(
-            Integer capacity
-    ) {
-
+    public static Specification<Room> hasCapacity(Integer capacity) {
         return (root, query, cb) -> {
-
             if (capacity == null) {
                 return null;
             }
-
             return cb.greaterThanOrEqualTo(
                     root.get("capacity"),
                     capacity
@@ -80,16 +62,11 @@ public class RoomSpecification {
     }
 
     // Workspace Type
-    public static Specification<Room> hasWorkspaceType(
-            Integer workspaceTypeId
-    ) {
-
+    public static Specification<Room> hasWorkspaceType(Integer workspaceTypeId) {
         return (root, query, cb) -> {
-
             if (workspaceTypeId == null) {
                 return null;
             }
-
             return cb.equal(
                     root.get("workspaceType").get("typeId"),
                     workspaceTypeId
@@ -97,37 +74,26 @@ public class RoomSpecification {
         };
     }
 
-    // Amenities
-    public static Specification<Room> hasAmenities(
-            List<Integer> amenityIds
-    ) {
-
+    // Amenities — filter theo tên (Khớp với logic DTO mới của nhánh booking)
+    public static Specification<Room> hasAmenities(List<String> amenityNames) {
         return (root, query, cb) -> {
-
-            if (amenityIds == null || amenityIds.isEmpty()) {
+            if (amenityNames == null || amenityNames.isEmpty()) {
                 return null;
             }
 
             query.distinct(true);
+            Join<Object, Object> amenitiesJoin = root.join("amenities");
 
-            Join<Object, Object> amenitiesJoin =
-                    root.join("amenities");
-
-            return amenitiesJoin.get("amenityId")
-                    .in(amenityIds);
+            return amenitiesJoin.get("name").in(amenityNames);
         };
     }
+
     // Room Status
-    public static Specification<Room> hasStatus(
-            Integer statusId
-    ) {
-
+    public static Specification<Room> hasStatus(Integer statusId) {
         return (root, query, cb) -> {
-
             if (statusId == null) {
                 return null;
             }
-
             return cb.equal(
                     root.get("roomStatus").get("statusId"),
                     statusId

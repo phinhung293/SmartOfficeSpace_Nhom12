@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Giữ lại 1 thẻ Link ở đây thôi
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import '../pages/css/Auth.css';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Nhận thông báo đẩy từ các trang khác gửi sang (Ví dụ: từ trang Booking đá ra)
+    const loginMessage = location.state?.message || null;
+
     const [showPass, setShowPass] = useState(false);
     const [credentials, setCredentials] = useState({ email: '', password: '' });
     const [loginError, setLoginError] = useState("");
@@ -13,7 +18,7 @@ const Login = () => {
         e.preventDefault();
         setLoginError("");
 
-        // Loại bỏ khoảng trắng thừa ở đầu/cuối dữ liệu nhập vào
+        // Chỉ loại bỏ khoảng trắng ở email, KHÔNG trim mật khẩu để tránh lỗi nếu pass có khoảng trắng cố ý
         const loginData = {
             email: credentials.email.trim(),
             password: credentials.password
@@ -22,14 +27,14 @@ const Login = () => {
         try {
             const res = await axiosInstance.post('/auth/login', loginData);
 
-            // Dữ liệu trả về từ ApiResponse của bạn nằm ở res.data.data
+            // Dữ liệu trả về từ ApiResponse nằm ở res.data.data
             const userData = res.data.data;
 
             // Lưu thông tin vào localStorage để duy trì phiên đăng nhập
             localStorage.setItem('token', userData.token);
             localStorage.setItem('user', JSON.stringify(userData));
 
-            // LOGIC CHUYỂN HƯỚNG: nếu có trang cần redirect (vd: từ booking) thì về đó
+            // LOGIC CHUYỂN HƯỚNG: nếu có trang cần redirect quay lại (vd: từ trang booking) thì ưu tiên về đó
             const redirectTo = sessionStorage.getItem("redirectAfterLogin");
             sessionStorage.removeItem("redirectAfterLogin");
 
@@ -38,15 +43,12 @@ const Login = () => {
                 return;
             }
 
-            // LOGIC CHUYỂN HƯỚNG TỰ ĐỘNG THEO QUYỀN (ROLE)
+            // LOGIC CHUYỂN HƯỚNG TỰ ĐỘNG THEO QUYỀN (Sử dụng href để làm mới Header nhận token mới)
             if (userData.role === 'ADMIN') {
-                navigate('/admin'); // Admin nhảy thẳng vào Dashboard quản trị
+                window.location.href = '/admin'; // Admin nhảy vào Dashboard quản trị
             } else {
-                navigate('/'); // User thường về trang chủ đặt phòng
+                window.location.href = '/'; // User thường quay về trang chủ đặt phòng
             }
-
-            // Làm mới lại trạng thái ứng dụng để nhận Header mới
-            window.location.reload();
 
         } catch (error) {
             // Hiển thị lỗi đỏ mượt mà lên khung báo lỗi
@@ -64,6 +66,14 @@ const Login = () => {
                 <h1>Chào mừng trở lại!</h1>
                 <p className="subtitle">Vui lòng đăng nhập vào tài khoản của bạn để tiếp tục.</p>
 
+                {/* Khung thông báo màu vàng nhạt khi bị điều hướng từ trang bảo mật (Nhánh booking bổ sung) */}
+                {loginMessage && (
+                    <div className="alert-error" style={{ background: '#fef3c7', color: '#b45309', borderColor: '#fcd34d' }}>
+                        <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }}></i>
+                        {loginMessage}
+                    </div>
+                )}
+
                 {/* Khung thông báo lỗi đỏ nhạt đồng bộ với mẫu thiết kế */}
                 {loginError && <div className="alert-error">{loginError}</div>}
 
@@ -75,6 +85,7 @@ const Login = () => {
                             <input
                                 type="email"
                                 placeholder="Nhập email của bạn"
+                                value={credentials.email}
                                 onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                                 required
                             />
@@ -84,18 +95,18 @@ const Login = () => {
                     <div className="input-group">
                         <div className="label-row" style={{display: 'flex', justifyContent: 'space-between'}}>
                             <label>Mật khẩu</label>
-                            
-                            {/* ĐÃ SỬA: Thay thẻ <a> thành thẻ <Link> để chuyển trang mượt mà không bị tải lại web */}
+
+                            {/* Giữ nguyên thẻ Link điều hướng mượt mà không load trang của develop */}
                             <Link to="/forgot-password" className="forgot-pass" style={{fontSize: '13px', color: '#0b57ff', textDecoration: 'none'}}>
                                 Quên mật khẩu?
                             </Link>
-
                         </div>
                         <div className="input-wrapper">
                             <i className="fa-solid fa-lock prefix-icon"></i>
                             <input
                                 type={showPass ? "text" : "password"}
                                 placeholder="Nhập mật khẩu của bạn"
+                                value={credentials.password}
                                 onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                                 required
                             />
@@ -105,7 +116,7 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {/* Checkbox ghi nhớ đăng nhập giống hệt mẫu Hình 1 */}
+                    {/* Checkbox ghi nhớ đăng nhập giống hệt mẫu thiết kế */}
                     <div className="checkbox-group">
                         <input type="checkbox" id="rememberMe" />
                         <label htmlFor="rememberMe">Ghi nhớ đăng nhập</label>
