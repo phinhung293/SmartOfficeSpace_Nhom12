@@ -93,13 +93,15 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     /* ─── My Bookings (user xem lịch sử của mình) ─── */
     Page<Booking> findByUser_UserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 
-    /* ─── Expire các booking PENDING_PAYMENT đã hết thời gian giữ chỗ ─── */
+    /* ─── ĐÃ SỬA: Expire các booking PENDING_PAYMENT quá hạn mà không bị lỗi Column Ambiguous ─── */
     @Modifying
     @Query("""
         UPDATE Booking b
         SET b.bookingStatus = :expiredStatus
-        WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT'
-          AND b.lockedUntil < :now
+        WHERE b.bookingStatus IN (
+            SELECT bs FROM BookingStatus bs WHERE bs.statusName = 'PENDING_PAYMENT'
+        )
+        AND b.lockedUntil < :now
     """)
     int expireStaleBookings(
             @Param("now") LocalDateTime now,
