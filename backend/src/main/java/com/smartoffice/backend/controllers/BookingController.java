@@ -4,15 +4,16 @@ import com.smartoffice.backend.common.ApiResponse;
 import com.smartoffice.backend.dto.booking.BookingRequest;
 import com.smartoffice.backend.dto.booking.BookingResponse;
 import com.smartoffice.backend.dto.booking.SlotStatusResponse;
+import com.smartoffice.backend.entities.Booking;
 import com.smartoffice.backend.repositories.UserRepository;
 import com.smartoffice.backend.services.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.security.Principal;
 import java.time.LocalDate;
@@ -77,5 +78,9 @@ public class BookingController {
                 userId, PageRequest.of(page, size, Sort.by("createdAt").descending())
         );
         return ApiResponse.success(result);
+    }
+    @GetMapping("/{id}")
+    public ApiResponse<Booking> getOne(@PathVariable Integer id) {
+        return ApiResponse.success(bookingService.findById(id));
     }
 }

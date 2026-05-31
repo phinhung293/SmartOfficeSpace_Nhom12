@@ -3,6 +3,7 @@ package com.smartoffice.backend.services;
 import com.smartoffice.backend.dto.booking.BookingRequest;
 import com.smartoffice.backend.dto.booking.BookingResponse;
 import com.smartoffice.backend.dto.booking.SlotStatusResponse;
+import com.smartoffice.backend.entities.Booking;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -51,4 +52,9 @@ public interface BookingService {
      * Tính doanh thu hôm nay từ các đơn CONFIRMED (admin dashboard).
      */
     java.math.BigDecimal getTodayRevenue(java.time.LocalDateTime dayStart, java.time.LocalDateTime dayEnd);
+
+    /**
+     * Lấy chi tiết 1 booking.
+     */
+    Booking findById(Integer id);
 }

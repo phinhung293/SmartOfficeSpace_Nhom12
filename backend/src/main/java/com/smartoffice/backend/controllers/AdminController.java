@@ -3,15 +3,15 @@ package com.smartoffice.backend.controllers;
 import com.smartoffice.backend.common.ApiResponse;
 import com.smartoffice.backend.dto.admin.AdminAddUserRequest;
 import com.smartoffice.backend.dto.admin.AdminUpdateUserRequest;
+import com.smartoffice.backend.dto.admin.AdminNotificationDto;
+import com.smartoffice.backend.dto.admin.NotificationSummaryDto;
 import com.smartoffice.backend.dto.booking.BookingResponse;
 import com.smartoffice.backend.dto.room.RoomUpdateRequest;
 import com.smartoffice.backend.dto.room.RoomResponse;
-import com.smartoffice.backend.entities.Room;
-import com.smartoffice.backend.entities.User;
-import com.smartoffice.backend.entities.RoomStatus;
-import com.smartoffice.backend.entities.WorkspaceType;
+import com.smartoffice.backend.entities.*;
 import com.smartoffice.backend.repositories.*;
 import com.smartoffice.backend.services.BookingService;
+import com.smartoffice.backend.services.NotificationService;
 import com.smartoffice.backend.services.RoomService;
 import com.smartoffice.backend.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -41,8 +42,9 @@ public class AdminController {
     private final RoomStatusRepository roomStatusRepository;
     private final WorkspaceTypeRepository workspaceTypeRepository;
     private final AmenityRepository amenityRepository;
+    private final NotificationService notificationService;
 
-    // ─── USERS (Gộp đầy đủ tính năng CRUD của cả 2 nhánh) ───────────────────────
+    // ─── USERS ───────────────────────────────────────────────
 
     @GetMapping("/users")
     public ApiResponse<List<User>> getUsers(@RequestParam(required = false) String role) {
@@ -76,16 +78,15 @@ public class AdminController {
         return ApiResponse.success("Xóa người dùng thành công!");
     }
 
-    // ─── ROOMS (Điều phối không gian - Nhánh booking) ─────────────────────────
+    // ─── ROOMS ───────────────────────────────────────────────
 
     @GetMapping("/rooms")
     public ApiResponse<List<RoomResponse>> getAllRooms(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer typeId
-    ) {
+            @RequestParam(required = false) Integer typeId) {
         List<RoomResponse> rooms = roomRepository.findAll().stream()
                 .map(room -> roomService.getRoomDetailResponse(room.getRoomId()))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
         return ApiResponse.success(rooms);
     }
 
@@ -123,7 +124,7 @@ public class AdminController {
             List<com.smartoffice.backend.entities.Amenity> allAmenities = amenityRepository.findAll();
             List<com.smartoffice.backend.entities.Amenity> selected = allAmenities.stream()
                     .filter(a -> request.getAmenities().contains(a.getName()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
             room.setAmenities(selected);
         }
 
@@ -132,10 +133,7 @@ public class AdminController {
     }
 
     @PutMapping("/rooms/{id}")
-    public ApiResponse<RoomResponse> updateRoom(
-            @PathVariable Integer id,
-            @RequestBody RoomUpdateRequest request
-    ) {
+    public ApiResponse<RoomResponse> updateRoom(@PathVariable Integer id, @RequestBody RoomUpdateRequest request) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Phòng không tồn tại: " + id));
         if (request.getName() != null)        room.setName(request.getName());
@@ -152,7 +150,6 @@ public class AdminController {
                     .orElseThrow(() -> new RuntimeException("Loại không gian không hợp lệ: " + request.getWorkspaceType()));
             room.setWorkspaceType(wt);
         }
-
         if (request.getRoomStatus() != null && !request.getRoomStatus().isBlank()) {
             RoomStatus rs = roomStatusRepository.findAll().stream()
                     .filter(s -> s.getStatusName().equalsIgnoreCase(request.getRoomStatus()))
@@ -160,20 +157,18 @@ public class AdminController {
                     .orElseThrow(() -> new RuntimeException("Trạng thái phòng không hợp lệ: " + request.getRoomStatus()));
             room.setRoomStatus(rs);
         }
-
         if (request.getAmenities() != null) {
             List<com.smartoffice.backend.entities.Amenity> allAmenities = amenityRepository.findAll();
             List<com.smartoffice.backend.entities.Amenity> selected = allAmenities.stream()
                     .filter(a -> request.getAmenities().contains(a.getName()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
             room.setAmenities(selected);
         }
-
         roomRepository.save(room);
         return ApiResponse.success(roomService.getRoomDetailResponse(id));
     }
 
-    // ─── BOOKINGS (Điều phối lịch đặt phòng - Nhánh booking) ───────────────────
+    // ─── BOOKINGS ─────────────────────────────────────────────
 
     @GetMapping("/bookings")
     public ApiResponse<Page<BookingResponse>> getAllBookings(
@@ -184,12 +179,10 @@ public class AdminController {
             @RequestParam(required = false) String roomKeyword,
             @RequestParam(required = false) String bookingCode,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         Page<BookingResponse> result = bookingService.getAllBookings(
                 status, dateFrom, dateTo, userKeyword, roomKeyword, bookingCode,
-                PageRequest.of(page, size, Sort.by("createdAt").descending())
-        );
+                PageRequest.of(page, size, Sort.by("createdAt").descending()));
         return ApiResponse.success(result);
     }
 
@@ -199,54 +192,39 @@ public class AdminController {
     }
 
     @PutMapping("/bookings/{id}")
-    public ApiResponse<BookingResponse> updateBooking(
-            @PathVariable Integer id,
-            @RequestBody Map<String, String> body
-    ) {
+    public ApiResponse<BookingResponse> updateBooking(@PathVariable Integer id, @RequestBody Map<String, String> body) {
         com.smartoffice.backend.entities.Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking: " + id));
 
-        if (body.containsKey("startTime") && body.get("startTime") != null) {
+        if (body.containsKey("startTime") && body.get("startTime") != null)
             booking.setStartTime(LocalDateTime.parse(body.get("startTime")));
-        }
-        if (body.containsKey("endTime") && body.get("endTime") != null) {
+        if (body.containsKey("endTime") && body.get("endTime") != null)
             booking.setEndTime(LocalDateTime.parse(body.get("endTime")));
-        }
 
         if (booking.getStartTime() != null && booking.getEndTime() != null) {
-            if (!booking.getEndTime().isAfter(booking.getStartTime())) {
+            if (!booking.getEndTime().isAfter(booking.getStartTime()))
                 throw new RuntimeException("Giờ kết thúc phải sau giờ bắt đầu.");
-            }
             boolean hasConflict = bookingRepository.hasOverlappingExcludeSelf(
-                    booking.getRoom().getRoomId(),
-                    booking.getBookingId(),
-                    booking.getStartTime(),
-                    booking.getEndTime()
-            );
+                    booking.getRoom().getRoomId(), booking.getBookingId(),
+                    booking.getStartTime(), booking.getEndTime());
             if (hasConflict) {
                 List<com.smartoffice.backend.entities.Booking> conflicts =
                         bookingRepository.findAllOverlappingExcludeSelf(
-                                booking.getRoom().getRoomId(),
-                                booking.getBookingId(),
-                                booking.getStartTime(),
-                                booking.getEndTime()
-                        );
+                                booking.getRoom().getRoomId(), booking.getBookingId(),
+                                booking.getStartTime(), booking.getEndTime());
                 String names = conflicts.stream()
                         .map(b -> b.getUser().getName()
-                                + " (" + b.getStartTime().toLocalTime().toString().substring(0,5)
-                                + "–" + b.getEndTime().toLocalTime().toString().substring(0,5) + ")")
-                        .collect(java.util.stream.Collectors.joining(", "));
-                throw new RuntimeException(
-                        "Khung giờ bị trùng với đơn của: " + names + ". Vui lòng chọn giờ khác."
-                );
+                                + " (" + b.getStartTime().toLocalTime().toString().substring(0, 5)
+                                + "–" + b.getEndTime().toLocalTime().toString().substring(0, 5) + ")")
+                        .collect(Collectors.joining(", "));
+                throw new RuntimeException("Khung giờ bị trùng với đơn của: " + names + ". Vui lòng chọn giờ khác.");
             }
         }
 
         if (booking.getStartTime() != null && booking.getEndTime() != null && booking.getRoom() != null) {
             long hours = java.time.Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();
-            if (hours > 0) {
+            if (hours > 0)
                 booking.setTotalAmount(booking.getRoom().getPrice().multiply(java.math.BigDecimal.valueOf(hours)));
-            }
         }
 
         bookingRepository.save(booking);
@@ -272,16 +250,15 @@ public class AdminController {
     public ApiResponse<BookingResponse> revertToPending(@PathVariable Integer id) {
         com.smartoffice.backend.entities.Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking: " + id));
-        if (!"CONFIRMED".equals(booking.getBookingStatus().getStatusName())) {
+        if (!"CONFIRMED".equals(booking.getBookingStatus().getStatusName()))
             throw new RuntimeException("Chỉ có thể hoàn đơn đã xác nhận về chờ thanh toán.");
-        }
         com.smartoffice.backend.entities.BookingStatus pendingStatus =
                 bookingStatusRepository.findAll().stream()
                         .filter(s -> "PENDING_PAYMENT".equals(s.getStatusName()))
                         .findFirst()
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái PENDING_PAYMENT"));
         booking.setBookingStatus(pendingStatus);
-        booking.setLockedUntil(java.time.LocalDateTime.now().plusMinutes(30));
+        booking.setLockedUntil(LocalDateTime.now().plusMinutes(30));
         bookingRepository.save(booking);
 
         BookingResponse resp = new BookingResponse();
@@ -296,19 +273,16 @@ public class AdminController {
         return ApiResponse.success(resp);
     }
 
-    // ─── DASHBOARD (Số liệu thống kê realtime - Nhánh booking) ───────────────────
+    // ─── DASHBOARD ────────────────────────────────────────────
 
     @GetMapping("/dashboard/don-hom-nay")
     public ApiResponse<Page<BookingResponse>> getDonHomNay(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         LocalDate today = LocalDate.now();
-        Page<BookingResponse> result = bookingService.getAllBookings(
+        return ApiResponse.success(bookingService.getAllBookings(
                 null, today, today, null, null, null,
-                PageRequest.of(page, size, Sort.by("createdAt").descending())
-        );
-        return ApiResponse.success(result);
+                PageRequest.of(page, size, Sort.by("createdAt").descending())));
     }
 
     @GetMapping("/dashboard/tinh-trang-phong")
@@ -316,11 +290,9 @@ public class AdminController {
         List<RoomResponse> rooms = roomRepository.findAll().stream()
                 .map(room -> {
                     RoomResponse r = roomService.getRoomDetailResponse(room.getRoomId());
-                    String realtimeStatus = roomService.getRealtimeStatus(room.getRoomId());
-                    r.setRoomStatus(realtimeStatus);
+                    r.setRoomStatus(roomService.getRealtimeStatus(room.getRoomId()));
                     return r;
-                })
-                .collect(java.util.stream.Collectors.toList());
+                }).collect(Collectors.toList());
         return ApiResponse.success(rooms);
     }
 
@@ -328,20 +300,82 @@ public class AdminController {
     public ApiResponse<Map<String, Object>> getTongQuan() {
         LocalDateTime dayStart = LocalDate.now().atStartOfDay();
         LocalDateTime dayEnd   = dayStart.plusDays(1);
-
-        long tongNguoiDung  = userRepository.count();
-        long donHomNay      = bookingRepository.countTodayBookings(dayStart, dayEnd);
-        long tongPhong      = roomRepository.count();
-
-        java.math.BigDecimal doanhThuHomNay = bookingRepository
-                .sumConfirmedAmountToday(dayStart, dayEnd)
-                .orElse(java.math.BigDecimal.ZERO);
-
         return ApiResponse.success(Map.of(
-                "tongNguoiDung",  tongNguoiDung,
-                "donHomNay",      donHomNay,
-                "tongPhong",      tongPhong,
-                "doanhThuHomNay", doanhThuHomNay
+                "tongNguoiDung",  userRepository.count(),
+                "donHomNay",      bookingRepository.countTodayBookings(dayStart, dayEnd),
+                "tongPhong",      roomRepository.count(),
+                "doanhThuHomNay", bookingRepository.sumConfirmedAmountToday(dayStart, dayEnd)
+                        .orElse(java.math.BigDecimal.ZERO)
         ));
+    }
+
+    // ─── NOTIFICATIONS ────────────────────────────────────────
+
+    @GetMapping("/notifications")
+    public ApiResponse<List<AdminNotificationDto>> getAdminNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(toDto(notificationService.getAllForAdmin(page, size)));
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public ApiResponse<Long> getAdminUnreadCount() {
+        return ApiResponse.success(notificationService.countAllUnread());
+    }
+
+    @PutMapping("/notifications/read-all")
+    public ApiResponse<String> markAllAdminRead() {
+        notificationService.markAllReadGlobal();
+        return ApiResponse.success("OK");
+    }
+
+    @GetMapping("/notifications/summary")
+    public ApiResponse<NotificationSummaryDto> getSummary() {
+        return ApiResponse.success(notificationService.getSummary());
+    }
+
+    @GetMapping("/notifications/search")
+    public ApiResponse<?> searchNotifications(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        LocalDateTime from = (dateFrom != null && !dateFrom.isBlank())
+                ? LocalDate.parse(dateFrom).atStartOfDay() : null;
+        LocalDateTime to   = (dateTo != null && !dateTo.isBlank())
+                ? LocalDate.parse(dateTo).atTime(23, 59, 59) : null;
+
+        List<Notification> list = notificationService.searchForAdmin(keyword, type, from, to, page, size);
+        long total = notificationService.countSearchForAdmin(keyword, type, from, to);
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("content", toDto(list));
+        result.put("totalElements", total);
+        result.put("page", page);
+        result.put("size", size);
+        return ApiResponse.success(result);
+    }
+
+    // ─── Helper ──────────────────────────────────────────────
+
+    private List<AdminNotificationDto> toDto(List<Notification> list) {
+        return list.stream().map(n -> {
+            AdminNotificationDto dto = new AdminNotificationDto();
+            dto.setNotifyId(n.getNotifyId());
+            dto.setMessage(n.getMessage());
+            dto.setType(n.getType());
+            dto.setIsRead(n.getIsRead());
+            dto.setReferenceId(n.getReferenceId());
+            dto.setCreatedAt(n.getCreatedAt());
+            if (n.getUser() != null) {
+                dto.setUserId(n.getUser().getUserId());
+                dto.setUserName(n.getUser().getName());
+                dto.setUserEmail(n.getUser().getEmail());
+            }
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

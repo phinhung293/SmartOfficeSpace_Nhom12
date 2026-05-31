@@ -12,6 +12,7 @@ import com.smartoffice.backend.repositories.BookingStatusRepository;
 import com.smartoffice.backend.repositories.RoomRepository;
 import com.smartoffice.backend.repositories.UserRepository;
 import com.smartoffice.backend.services.BookingService;
+import com.smartoffice.backend.services.NotificationService; // ← THÊM MỚI
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingStatusRepository bookingStatusRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService; // ← THÊM MỚI
 
     // ─── STATUS HELPERS ──────────────────────────────────────────────────────
 
@@ -73,7 +75,6 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại."));
 
         // ── COLLISION CHECK với PESSIMISTIC WRITE LOCK ──
-        // Câu query này sẽ lock các rows liên quan cho đến hết transaction
         List<Booking> conflicts = bookingRepository.findOverlappingWithLock(
                 request.getRoomId(), startTime, endTime
         );
@@ -104,7 +105,7 @@ public class BookingServiceImpl implements BookingService {
         // Save trước để lấy ID cho bookingCode
         Booking saved = bookingRepository.save(booking);
 
-        // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} — dùng ID tránh duplicate ──
+        // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} ──
         String datePart = request.getDate().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String prefix   = "WS" + datePart + "-";
         saved.setBookingCode(prefix + String.format("%03d", saved.getBookingId()));
@@ -112,6 +113,8 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking created: {} for room {} by user {}", saved.getBookingCode(),
                 room.getName(), user.getEmail());
+
+        notificationService.onBookingCreated(saved); // ← THÊM MỚI
 
         return toResponse(saved);
     }
@@ -140,7 +143,6 @@ public class BookingServiceImpl implements BookingService {
                     bookedSlots.addAll(slotIndexes);
                     break;
                 case "PENDING_PAYMENT":
-                    // Nếu chưa expire → locked; nếu đã expire → bỏ qua (scheduler sẽ xử lý)
                     if (b.getLockedUntil() != null && b.getLockedUntil().isAfter(LocalDateTime.now())) {
                         lockedSlots.addAll(slotIndexes);
                     }
@@ -153,14 +155,11 @@ public class BookingServiceImpl implements BookingService {
         return new SlotStatusResponse(bookedSlots, maintSlots, lockedSlots);
     }
 
-    /**
-     * Chuyển startTime → endTime thành danh sách slot index (08:00=0, 09:00=1, ...)
-     */
     private List<Integer> toSlotIndexes(LocalDateTime start, LocalDateTime end, LocalDate date) {
         List<Integer> indexes = new ArrayList<>();
         LocalTime s = start.toLocalTime();
         LocalTime e = end.toLocalTime();
-        int base = 8; // slot 0 = 08:00
+        int base = 8;
         for (int h = base; h < 22; h++) {
             LocalTime slotStart = LocalTime.of(h, 0);
             LocalTime slotEnd   = LocalTime.of(h + 1, 0);
@@ -194,7 +193,6 @@ public class BookingServiceImpl implements BookingService {
             spec = spec.and((root, q, cb) ->
                     cb.equal(root.get("bookingStatus").get("statusName"), status));
         }
-        // Lọc theo khoảng ngày dateFrom → dateTo
         if (dateFrom != null) {
             LocalDateTime from = dateFrom.atStartOfDay();
             spec = spec.and((root, q, cb) ->
@@ -245,8 +243,10 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setBookingStatus(getStatus("CANCELLED"));
-        booking.setLockedUntil(null); // mở lock ngay
-        return toResponse(bookingRepository.save(booking));
+        booking.setLockedUntil(null);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.onBookingCancelled(saved); // gửi thông báo hủy cho user
+        return toResponse(saved);
     }
 
     // ─── 6. ADMIN XÁC NHẬN THANH TOÁN ───────────────────────────────────────
@@ -263,7 +263,11 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(getStatus("CONFIRMED"));
         booking.setLockedUntil(null);
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking); // ← đổi thành variable
+
+        notificationService.onPaymentConfirmed(saved); // ← THÊM MỚI
+
+        return toResponse(saved);
     }
 
     // ─── MAP TO RESPONSE ─────────────────────────────────────────────────────
@@ -310,5 +314,10 @@ public class BookingServiceImpl implements BookingService {
                 .map(Booking::getTotalAmount)
                 .filter(a -> a != null)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+    }
+    @Override
+    public Booking findById(Integer id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
     }
 }
