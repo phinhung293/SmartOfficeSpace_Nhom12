@@ -380,6 +380,18 @@ public class AdminController {
                 dto.setUserName(n.getUser().getName());
                 dto.setUserEmail(n.getUser().getEmail());
             }
+            // Lấy tổng tiền + đối tượng thực (user đặt phòng) từ booking
+            if (n.getReferenceId() != null) {
+                bookingRepository.findById(n.getReferenceId()).ifPresent(b -> {
+                    dto.setTotalAmount(b.getTotalAmount());
+                    // Với ADMIN_CANCELLATION, n.user là admin — lấy user thực từ booking
+                    if ("ADMIN_CANCELLATION".equals(n.getType()) && b.getUser() != null) {
+                        dto.setUserId(b.getUser().getUserId());
+                        dto.setUserName(b.getUser().getName());
+                        dto.setUserEmail(b.getUser().getEmail());
+                    }
+                });
+            }
             return dto;
         }).collect(Collectors.toList());
     }
@@ -468,4 +480,3 @@ public class AdminController {
         return ApiResponse.success(result);
     }
 }
-

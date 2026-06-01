@@ -340,7 +340,11 @@ const AdminNotificationSearchPage = () => {
                                             </span>
                                         </td>
                                         <td style={{ fontSize: 13 }}>{formatDateTime(n.createdAt)}</td>
-                                        <td style={{ fontSize: 13 }}>—</td>
+                                        <td style={{ fontSize: 13, fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap' }}>
+                                            {n.totalAmount != null
+                                                ? n.totalAmount.toLocaleString('vi-VN') + 'đ'
+                                                : '—'}
+                                        </td>
                                     </tr>
                                 );
                             })

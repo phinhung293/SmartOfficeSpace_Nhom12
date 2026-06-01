@@ -5,12 +5,14 @@ import Footer from '../components/Footer';
 import notificationApi from '../api/notificationApi';
 import './css/NotificationsPage.css';
 
+// FIX #5: Thêm CANCELLATION, sửa label PROMOTION cho chuyên nghiệp hơn
 const TYPE_CONFIG = {
-    BOOKING:   { icon: 'fa-circle-check', color: '#22c55e', label: 'Đặt phòng thành công' },
-    PAYMENT:   { icon: 'fa-credit-card',  color: '#3b82f6', label: 'Thanh toán thành công' },
-    REMINDER:  { icon: 'fa-bell',         color: '#f97316', label: 'Nhắc lịch đặt phòng' },
-    PROMOTION: { icon: 'fa-tag',          color: '#a855f7', label: 'Ưu đãi mới dành cho bạn!!!' },
-    SYSTEM:    { icon: 'fa-circle-info',  color: '#6b7280', label: 'Cập nhật chính sách' },
+    BOOKING:      { icon: 'fa-circle-check',  color: '#22c55e', label: 'Đặt phòng thành công' },
+    PAYMENT:      { icon: 'fa-credit-card',   color: '#3b82f6', label: 'Thanh toán thành công' },
+    REMINDER:     { icon: 'fa-bell',          color: '#f97316', label: 'Nhắc lịch đặt phòng' },
+    PROMOTION:    { icon: 'fa-tag',           color: '#a855f7', label: 'Ưu đãi dành cho bạn' },
+    CANCELLATION: { icon: 'fa-circle-xmark',  color: '#ef4444', label: 'Đơn đặt phòng đã hủy' },
+    SYSTEM:       { icon: 'fa-circle-info',   color: '#6b7280', label: 'Thông báo hệ thống' },
 };
 
 function timeAgo(dateStr) {
@@ -21,23 +23,35 @@ function timeAgo(dateStr) {
     return `${Math.floor(diff / 86400)} ngày trước`;
 }
 
+// FIX #7: Thêm phân trang — số lượng thông báo mỗi trang
+const PAGE_SIZE = 10;
+
 const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    // FIX #7: State phân trang
+    const [page, setPage]           = useState(0);
+    const [hasMore, setHasMore]     = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchAll();
+        fetchAll(0, true);
     }, []);
 
-    const fetchAll = async () => {
+    // FIX #7: fetchAll hỗ trợ phân trang — reset=true khi load lần đầu
+    const fetchAll = async (pageNum = 0, reset = false) => {
         try {
-            const res = await notificationApi.getAll();
-            setNotifications(res.data.data);
+            reset ? setLoading(true) : setLoadingMore(true);
+            const res = await notificationApi.getAll(pageNum, PAGE_SIZE);
+            const data = res.data.data || [];
+            setNotifications(prev => reset ? data : [...prev, ...data]);
+            setPage(pageNum);
+            setHasMore(data.length === PAGE_SIZE);
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false);
+            reset ? setLoading(false) : setLoadingMore(false);
         }
     };
 
@@ -93,45 +107,66 @@ const NotificationsPage = () => {
                     {loading ? (
                         <div className="notif-page-empty">Đang tải...</div>
                     ) : notifications.length === 0 ? (
-                        <div className="notif-page-empty">Bạn chưa có thông báo nào.</div>
+                        <div className="notif-page-empty">
+                            <i className="fa-regular fa-bell-slash"
+                               style={{ fontSize: 32, color: '#d1d5db', display: 'block', marginBottom: 12 }}></i>
+                            Bạn chưa có thông báo nào.
+                        </div>
                     ) : (
-                        notifications.map(n => {
-                            const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
-                            return (
-                                <div
-                                    key={n.notifyId}
-                                    className="notif-page-item"
-                                    onClick={() => handleClickItem(n)}
-                                >
-                                    {/* Icon */}
-                                    <div className="notif-page-icon" style={{ background: cfg.color + '22' }}>
-                                        <i className={`fa-solid ${cfg.icon}`} style={{ color: cfg.color }}></i>
-                                    </div>
+                        <>
+                            {notifications.map(n => {
+                                const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
+                                return (
+                                    <div
+                                        key={n.notifyId}
+                                        className={`notif-page-item ${!n.isRead ? 'unread' : ''}`}
+                                        onClick={() => handleClickItem(n)}
+                                    >
+                                        {/* Icon */}
+                                        <div className="notif-page-icon" style={{ background: cfg.color + '22' }}>
+                                            <i className={`fa-solid ${cfg.icon}`} style={{ color: cfg.color }}></i>
+                                        </div>
 
-                                    {/* Nội dung */}
-                                    <div className="notif-page-body">
-                                        <p className="notif-page-label">{cfg.label}</p>
-                                        <p className="notif-page-message">{n.message}</p>
-                                        <button
-                                            className="notif-page-btn"
-                                            onClick={(e) => { e.stopPropagation(); handleViewDetail(e, n); }}
-                                        >
-                                            Xem chi tiết
-                                        </button>
-                                    </div>
+                                        {/* Nội dung */}
+                                        <div className="notif-page-body">
+                                            <p className="notif-page-label">{cfg.label}</p>
+                                            <p className="notif-page-message">{n.message}</p>
+                                            <button
+                                                className="notif-page-btn"
+                                                onClick={(e) => handleViewDetail(e, n)}
+                                            >
+                                                Xem chi tiết
+                                            </button>
+                                        </div>
 
-                                    {/* Thời gian + chấm xanh */}
-                                    <div className="notif-page-meta">
-                                        <span className="notif-page-time">{timeAgo(n.createdAt)}</span>
-                                        {!n.isRead && <span className="notif-page-dot-right"></span>}
+                                        {/* Thời gian + chấm xanh */}
+                                        <div className="notif-page-meta">
+                                            <span className="notif-page-time">{timeAgo(n.createdAt)}</span>
+                                            {!n.isRead && <span className="notif-page-dot-right"></span>}
+                                        </div>
                                     </div>
+                                );
+                            })}
+
+                            {/* FIX #7: Nút xem thêm */}
+                            {hasMore && (
+                                <div className="notif-page-loadmore">
+                                    <button
+                                        className="notif-page-loadmore-btn"
+                                        onClick={() => fetchAll(page + 1, false)}
+                                        disabled={loadingMore}
+                                    >
+                                        {loadingMore
+                                            ? <><i className="fa-solid fa-spinner fa-spin"></i> Đang tải...</>
+                                            : 'Xem thêm thông báo'
+                                        }
+                                    </button>
                                 </div>
-                            );
-                        })
+                            )}
+                        </>
                     )}
                 </div>
             </div>
-
         </>
     );
 };

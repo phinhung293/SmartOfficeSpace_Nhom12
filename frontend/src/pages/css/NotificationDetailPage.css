@@ -84,8 +84,9 @@
     font-size: 15px; font-weight: 700; margin: 0 0 16px; color: #111827;
 }
 
-.nfd-status.paid    { color: #22c55e; font-weight: 600; }
-.nfd-status.pending { color: #f97316; font-weight: 600; }
+.nfd-status.paid     { color: #22c55e; font-weight: 600; }
+.nfd-status.pending  { color: #f97316; font-weight: 600; }
+.nfd-status.refunded { color: #6b7280; font-weight: 600; }
 
 /* Related */
 .nfd-related-item {
@@ -114,3 +115,9 @@
     padding: 20px 0;
     margin: 0;
 }
+/* Trạng thái đặt phòng trong notification detail */
+.nfd-booking-status           { font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 20px; }
+.nfd-booking-status.confirmed { background: #dcfce7; color: #16a34a; }
+.nfd-booking-status.cancelled { background: #fee2e2; color: #dc2626; }
+.nfd-booking-status.completed { background: #dbeafe; color: #1d4ed8; }
+.nfd-booking-status.pending   { background: #ffedd5; color: #ea580c; }

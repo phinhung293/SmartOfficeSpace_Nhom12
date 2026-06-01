@@ -1,7 +1,9 @@
 import axiosInstance from './axiosInstance';
 
 const notificationApi = {
-    getAll: () => axiosInstance.get('/notifications'),
+    // FIX #7: Thêm page/size để hỗ trợ phân trang
+    getAll: (page = 0, size = 10) =>
+        axiosInstance.get(`/notifications?page=${page}&size=${size}`),
 
     getUnreadCount: () =>
         axiosInstance.get('/notifications/unread-count'),
@@ -44,7 +46,5 @@ const notificationApi = {
         return axiosInstance.get(`/admin/notifications/search?${q.toString()}`);
     },
 };
-
-
 
 export default notificationApi;

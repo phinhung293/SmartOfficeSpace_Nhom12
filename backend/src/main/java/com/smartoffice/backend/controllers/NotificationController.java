@@ -1,15 +1,18 @@
 package com.smartoffice.backend.controllers;
 
 import com.smartoffice.backend.common.ApiResponse;
+import com.smartoffice.backend.dto.user.NotificationDto;
 import com.smartoffice.backend.entities.Notification;
 import com.smartoffice.backend.repositories.NotificationRepository;
 import com.smartoffice.backend.repositories.UserRepository;
 import com.smartoffice.backend.services.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -19,11 +22,18 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
-    // GET /api/notifications — danh sách thông báo
+
+    // GET /api/notifications?page=0&size=10
     @GetMapping
-    public ApiResponse<List<Notification>> getAll(Principal principal) {
+    public ApiResponse<List<NotificationDto>> getAll(
+            Principal principal,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         Integer userId = getUserId(principal);
-        return ApiResponse.success(notificationService.getForUser(userId));
+        List<Notification> result = notificationRepository
+                .findByUser_UserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        return ApiResponse.success(toDto(result));
     }
 
     // GET /api/notifications/unread-count
@@ -46,27 +56,44 @@ public class NotificationController {
         return ApiResponse.success("OK");
     }
 
-    private Integer getUserId(Principal principal) {
-        return userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"))
-                .getUserId();
-    }
     // GET /api/notifications/{id} — chi tiết 1 thông báo
     @GetMapping("/{id}")
-    public ApiResponse<Notification> getOne(@PathVariable Integer id) {
+    public ApiResponse<NotificationDto> getOne(@PathVariable Integer id) {
         return notificationRepository.findById(id)
-                .map(ApiResponse::success)
+                .map(n -> ApiResponse.success(toSingleDto(n)))
                 .orElseThrow(() -> new RuntimeException("Not found"));
     }
 
     // GET /api/notifications/{id}/related — thông báo liên quan
     @GetMapping("/{id}/related")
-    public ApiResponse<List<Notification>> getRelated(@PathVariable Integer id, Principal principal) {
+    public ApiResponse<List<NotificationDto>> getRelated(@PathVariable Integer id, Principal principal) {
         notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
         Integer userId = getUserId(principal);
         List<Notification> related = notificationService.getRelated(userId, id);
-        return ApiResponse.success(related);
+        return ApiResponse.success(toDto(related));
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private Integer getUserId(Principal principal) {
+        return userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getUserId();
+    }
+
+    private NotificationDto toSingleDto(Notification n) {
+        NotificationDto dto = new NotificationDto();
+        dto.setNotifyId(n.getNotifyId());
+        dto.setMessage(n.getMessage());
+        dto.setType(n.getType());
+        dto.setIsRead(n.getIsRead());
+        dto.setReferenceId(n.getReferenceId());
+        dto.setCreatedAt(n.getCreatedAt());
+        return dto;
+    }
+
+    private List<NotificationDto> toDto(List<Notification> list) {
+        return list.stream().map(this::toSingleDto).collect(Collectors.toList());
+    }
 }

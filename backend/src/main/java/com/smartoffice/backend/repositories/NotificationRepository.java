@@ -10,7 +10,10 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Integer> {
 
-    // Lấy tất cả thông báo của user, mới nhất trước
+    // FIX #7 & #8: Thêm overload có Pageable để hỗ trợ phân trang từ controller
+    List<Notification> findByUser_UserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
+
+    // Lấy tất cả thông báo của user (không phân trang — dùng nội bộ nếu cần)
     List<Notification> findByUser_UserIdOrderByCreatedAtDesc(Integer userId);
 
     // Đếm thông báo chưa đọc (cho badge chuông)
@@ -21,7 +24,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     @Query("UPDATE Notification n SET n.isRead = 1 WHERE n.user.userId = :userId AND n.isRead = 0")
     int markAllReadByUserId(@Param("userId") Integer userId);
 
-    // Lấy booking CONFIRMED sắp bắt đầu trong 30-60 phút (cho cron nhắc lịch)
+    // Kiểm tra đã gửi reminder chưa (tránh gửi 2 lần)
     @Query("""
         SELECT n FROM Notification n
         WHERE n.type = 'REMINDER'
@@ -29,28 +32,25 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
     """)
     List<Notification> findReminderByBookingId(@Param("bookingId") Integer bookingId);
 
-    // Lấy các thông báo liên quan cùng referenceId, trừ bản thân nó
+    // Lấy các thông báo liên quan cùng user, trừ bản thân
     @Query("SELECT n FROM Notification n WHERE n.user.userId = :userId AND n.notifyId != :excludeId ORDER BY n.createdAt DESC")
     List<Notification> findRelated(@Param("userId") Integer userId, @Param("excludeId") Integer excludeId, Pageable pageable);
 
-    // ── ADMIN: Lấy tất cả thông báo hệ thống (mọi user), mới nhất trước ──
+    // ── ADMIN ────────────────────────────────────────────────────────────────
+
     @Query("SELECT n FROM Notification n ORDER BY n.createdAt DESC")
     List<Notification> findAllOrderByCreatedAtDesc(Pageable pageable);
 
-    // ── ADMIN: Đếm tổng thông báo chưa đọc toàn hệ thống ──
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.isRead = 0")
     long countAllUnread();
 
-    // ── ADMIN: Đánh dấu tất cả đã đọc (toàn hệ thống) ──
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = 1 WHERE n.isRead = 0")
     int markAllReadGlobal();
 
-    // Đếm theo type
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.type = :type")
     long countByType(@Param("type") String type);
 
-    // Đếm thông báo hôm nay
     @Query("""
     SELECT COUNT(n) FROM Notification n
     WHERE n.createdAt >= :dayStart AND n.createdAt < :dayEnd
@@ -60,11 +60,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Inte
             @Param("dayEnd")   java.time.LocalDateTime dayEnd
     );
 
-    // Đếm tổng tất cả
     @Query("SELECT COUNT(n) FROM Notification n")
     long countAll();
 
-    // Lấy thông báo trong ngày hôm nay
     @Query("""
     SELECT n FROM Notification n
     WHERE n.createdAt >= :dayStart AND n.createdAt < :dayEnd

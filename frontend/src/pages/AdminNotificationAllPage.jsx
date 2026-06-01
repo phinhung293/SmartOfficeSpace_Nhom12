@@ -211,7 +211,7 @@ const AdminNotificationAllPage = () => {
                             <th>Kênh gửi</th>
                             <th>Ngày gửi</th>
                             <th>Trạng thái</th>
-                            <th>Thao tác</th>
+                            <th>Tổng tiền</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -248,11 +248,10 @@ const AdminNotificationAllPage = () => {
                                                 {stCfg.label}
                                             </span>
                                         </td>
-                                        <td>
-                                            <button className="anall-detail-btn"
-                                                    onClick={() => navigate(`/admin/notifications/${n.notifyId}`)}>
-                                                <i className="fa-regular fa-file-lines"></i> Xem chi tiết
-                                            </button>
+                                        <td className="anall-amount-cell">
+                                            {n.totalAmount != null
+                                                ? n.totalAmount.toLocaleString('vi-VN') + 'đ'
+                                                : '—'}
                                         </td>
                                     </tr>
                                 );

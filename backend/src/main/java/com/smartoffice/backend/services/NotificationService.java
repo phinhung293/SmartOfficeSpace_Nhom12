@@ -4,7 +4,9 @@ import com.smartoffice.backend.dto.admin.AdminNotificationDto;
 import com.smartoffice.backend.dto.admin.NotificationSummaryDto;
 import com.smartoffice.backend.entities.Booking;
 import com.smartoffice.backend.entities.Notification;
+import com.smartoffice.backend.entities.User;
 import com.smartoffice.backend.repositories.NotificationRepository;
+import com.smartoffice.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +24,10 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final EmailService emailService;
+    private final UserRepository userRepository;
+
     private static final List<String> IMPORTANT_TYPES =
-            Arrays.asList("PAYMENT", "CANCELLATION", "REMINDER");
+            Arrays.asList("PAYMENT", "CANCELLATION", "ADMIN_CANCELLATION", "REMINDER");
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm dd/MM");
 
     // ── Gọi sau khi tạo booking ──
@@ -83,13 +87,21 @@ public class NotificationService {
     }
 
     // ── Helper ──
-    private void save(com.smartoffice.backend.entities.User user, String type, String message, Integer refId) {
+    private void save(User user, String type, String message, Integer refId) {
         Notification n = new Notification();
         n.setUser(user);
         n.setType(type);
         n.setMessage(message);
         n.setReferenceId(refId);
         notificationRepository.save(n);
+    }
+
+    // ── Helper: gửi thông báo tới tất cả tài khoản có role ADMIN ──
+    private void notifyAllAdmins(String type, String message, Integer refId) {
+        List<User> admins = userRepository.findByRole_RoleName("ADMIN");
+        for (User admin : admins) {
+            save(admin, type, message, refId);
+        }
     }
 
     public List<Notification> getRelated(Integer userId, Integer excludeNotifyId) {
@@ -112,33 +124,58 @@ public class NotificationService {
         notificationRepository.markAllReadGlobal();
     }
 
-    // ── Gọi khi hủy booking ──
+    // ── Gọi khi người dùng tự hủy booking ──
     @Transactional
-    public void onBookingCancelled(Booking booking) {
+    public void onUserCancelledBooking(Booking booking) {
+        // Gửi xác nhận hủy cho chính user đó
+        save(booking.getUser(), "CANCELLATION",
+                "Bạn đã hủy đặt phòng " + booking.getBookingCode()
+                        + " - Phòng " + booking.getRoom().getName() + " thành công.",
+                booking.getBookingId());
+
+        // Thông báo cho tất cả admin biết user vừa hủy
+        notifyAllAdmins("ADMIN_CANCELLATION",
+                "Người dùng " + booking.getUser().getName()
+                        + " đã hủy đặt phòng " + booking.getBookingCode()
+                        + " - Phòng " + booking.getRoom().getName() + ".",
+                booking.getBookingId());
+    }
+
+    // ── Gọi khi admin hủy booking ──
+    @Transactional
+    public void onAdminCancelledBooking(Booking booking) {
+        // Gửi thông báo cho user bị hủy
         save(booking.getUser(), "CANCELLATION",
                 "Đơn đặt phòng " + booking.getBookingCode()
-                        + " - Phòng " + booking.getRoom().getName() + " đã bị hủy.",
+                        + " - Phòng " + booking.getRoom().getName() + " đã bị hủy bởi quản trị viên.",
+                booking.getBookingId());
+
+        // Ghi log thông báo cho tất cả admin
+        notifyAllAdmins("ADMIN_CANCELLATION",
+                "Admin đã hủy đặt phòng " + booking.getBookingCode()
+                        + " của người dùng " + booking.getUser().getName()
+                        + " - Phòng " + booking.getRoom().getName() + ".",
                 booking.getBookingId());
     }
 
     // ── ADMIN: lấy summary tổng hợp ──
     public NotificationSummaryDto getSummary() {
         java.time.LocalDateTime dayStart = java.time.LocalDate.now().atStartOfDay();
-        java.time.LocalDateTime dayEnd   = dayStart.plusDays(1);
+        java.time.LocalDateTime dayEnd = dayStart.plusDays(1);
 
-        long total      = notificationRepository.countAll();
-        long unread     = notificationRepository.countAllUnread();
-        long today      = notificationRepository.countToday(dayStart, dayEnd);
+        long total = notificationRepository.countAll();
+        long unread = notificationRepository.countAllUnread();
+        long today = notificationRepository.countToday(dayStart, dayEnd);
         long bookingCnt = notificationRepository.countByType("BOOKING");
         long paymentCnt = notificationRepository.countByType("PAYMENT");
-        long cancelCnt  = notificationRepository.countByType("CANCELLATION");
+        long cancelCnt = notificationRepository.countByType("CANCELLATION");
 
         List<Notification> recent = notificationRepository
                 .findAllOrderByCreatedAtDesc(PageRequest.of(0, 20));
 
         List<AdminNotificationDto> recentDtos = toAdminDtoList(recent);
 
-        // Tab "Quan trọng": PAYMENT, CANCELLATION, REMINDER
+        // Tab "Quan trọng": PAYMENT, CANCELLATION, ADMIN_CANCELLATION, REMINDER
         List<AdminNotificationDto> importantDtos = recentDtos.stream()
                 .filter(n -> IMPORTANT_TYPES.contains(n.getType()))
                 .collect(Collectors.toList());
@@ -177,6 +214,7 @@ public class NotificationService {
             return dto;
         }).collect(Collectors.toList());
     }
+
     public List<Notification> searchForAdmin(String keyword, String type,
                                              java.time.LocalDateTime dateFrom, java.time.LocalDateTime dateTo,
                                              int page, int size) {

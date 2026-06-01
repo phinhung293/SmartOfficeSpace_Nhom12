@@ -245,7 +245,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(getStatus("CANCELLED"));
         booking.setLockedUntil(null);
         Booking saved = bookingRepository.save(booking);
-        notificationService.onBookingCancelled(saved); // gửi thông báo hủy cho user
+        notificationService.onAdminCancelledBooking(saved); // thông báo cho user + admin
         return toResponse(saved);
     }
 
@@ -353,8 +353,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(getStatus("CANCELLED"));
         booking.setLockedUntil(null);
 
-        bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.onUserCancelledBooking(saved); // thông báo cho user + admin
 
-        return toResponse(booking);
+        return toResponse(saved);
     }
 }

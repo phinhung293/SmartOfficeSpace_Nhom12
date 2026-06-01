@@ -18,4 +18,5 @@ public class AdminNotificationDto {
     private Integer userId;
     private String  userName;
     private String  userEmail;
+    private java.math.BigDecimal totalAmount;
 }

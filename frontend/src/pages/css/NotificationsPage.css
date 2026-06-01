@@ -38,7 +38,8 @@
     color: #111827;
     margin: 0;
 }
-/* Nút đánh dấu tất cả — xanh outline */
+
+/* Nút đánh dấu tất cả */
 .notif-page-markall {
     background: none;
     border: none;
@@ -51,7 +52,7 @@
     gap: 6px;
 }
 .notif-page-markall.markall-done {
-    color: #9ca3af;       /* xám khi đã đọc hết */
+    color: #9ca3af;
     cursor: default;
 }
 .notif-page-markall.markall-done:hover {
@@ -104,11 +105,11 @@
     margin: 0 0 10px;
 }
 
-/* Nút Xem chi tiết — viền xanh, chữ xanh */
+/* Nút Xem chi tiết */
 .notif-page-btn {
-    border: 1.5px solid #3b82f6;   /* ← viền xanh */
+    border: 1.5px solid #3b82f6;
     background: white;
-    color: #3b82f6;                 /* ← chữ xanh */
+    color: #3b82f6;
     font-size: 13px;
     padding: 5px 16px;
     border-radius: 8px;
@@ -134,6 +135,7 @@
     color: #9ca3af;
     white-space: nowrap;
 }
+
 /* Chấm xanh bên phải */
 .notif-page-dot-right {
     width: 10px;
@@ -142,9 +144,41 @@
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* Empty state */
 .notif-page-empty {
     padding: 48px;
     text-align: center;
     color: #9ca3af;
     font-size: 15px;
+}
+
+/* FIX #7: Nút xem thêm */
+.notif-page-loadmore {
+    padding: 20px 28px;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+}
+.notif-page-loadmore-btn {
+    border: 1.5px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.notif-page-loadmore-btn:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+.notif-page-loadmore-btn:disabled {
+    cursor: default;
+    opacity: 0.6;
 }

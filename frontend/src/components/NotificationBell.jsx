@@ -65,7 +65,8 @@ const NotificationBell = () => {
         setOpen(!open);
     };
 
-    const handleMarkAllRead = async () => {
+    const handleMarkAllRead = async (e) => {
+        e.stopPropagation();
         try {
             isAdmin
                 ? await notificationApi.adminMarkAllRead()
@@ -75,16 +76,26 @@ const NotificationBell = () => {
         } catch {}
     };
 
+    // FIX #6: Cả user và admin đều mark read + navigate khi click item
     const handleClickItem = async (n) => {
-        if (!isAdmin && !n.isRead) {
+        setOpen(false);
+        // Mark đã đọc nếu chưa đọc
+        if (!n.isRead) {
             try {
-                await notificationApi.markRead(n.notifyId);
+                if (!isAdmin) {
+                    await notificationApi.markRead(n.notifyId);
+                }
                 setUnread(prev => Math.max(0, prev - 1));
                 setNoti(prev => prev.map(x =>
                     x.notifyId === n.notifyId ? { ...x, isRead: 1 } : x
                 ));
             } catch {}
         }
+        // Navigate đến trang chi tiết
+        const path = isAdmin
+            ? `/admin/notifications`   // Admin → trang quản lý
+            : `/notifications/${n.notifyId}`;  // User → chi tiết thông báo
+        navigate(path);
     };
 
     return (
@@ -108,13 +119,6 @@ const NotificationBell = () => {
                             </button>
                         )}
                     </div>
-
-                    {/*{isAdmin && (*/}
-                    {/*    <div className="notif-admin-badge">*/}
-                    {/*        <i className="fa-solid fa-shield-halved" style={{ color: '#6366f1', marginRight: 6 }}></i>*/}
-                    {/*        Chế độ quản trị viên*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
 
                     <div className="notif-list">
                         {notifications.length === 0 ? (

@@ -127,7 +127,9 @@ export default function BookingDetail() {
     const id = bookingId || state?.bookingId;
     if (!id) { setError('Không tìm thấy mã đặt phòng.'); setLoading(false); return; }
     getMyBookingById(id)
-      .then(raw => setBooking(normalizeBooking(raw)))
+        .then(raw => {console.log("BOOKING DETAIL =", raw);
+          setBooking(normalizeBooking(raw));
+        })
       .catch(() => setError('Không thể tải thông tin đặt phòng.'))
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
