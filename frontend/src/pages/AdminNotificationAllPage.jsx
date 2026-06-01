@@ -32,7 +32,7 @@ function getStatusCfg(n) {
     return STATUS_CONFIG.SENT;
 }
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const PAGE_SIZE_OPTIONS = [10];
 
 const AdminNotificationAllPage = () => {
     const navigate = useNavigate();
@@ -41,17 +41,18 @@ const AdminNotificationAllPage = () => {
     const [loading, setLoading]             = useState(true);
     const [totalItems, setTotalItems]       = useState(0);
 
+    // Các state này chỉ dùng để truyền sang trang tìm kiếm, KHÔNG lọc tại trang này
     const [search, setSearch]               = useState('');
     const [filterType, setFilterType]       = useState('');
     const [filterChannel, setFilterChannel] = useState('');
     const [dateFrom, setDateFrom]           = useState('');
-    const [dateTo, setDateTo]               = useState('');
 
     const [page, setPage]         = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
     const dateFromRef = React.useRef(null);
     const dateToRef   = React.useRef(null);
+    const [pickingDate, setPickingDate] = useState('from');
 
     useEffect(() => { fetchData(); }, [page, pageSize]);
 
@@ -74,19 +75,15 @@ const AdminNotificationAllPage = () => {
         }
     };
 
+    // Nút Tìm kiếm → chuyển sang trang tìm kiếm kèm các filter đã nhập
     const handleSearch = () => {
-        navigate(`/admin/notifications/search?keyword=${encodeURIComponent(search)}&type=${encodeURIComponent(filterType)}&channel=${encodeURIComponent(filterChannel)}&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`);
+        const params = new URLSearchParams();
+        if (search)        params.set('keyword',  search);
+        if (filterType)    params.set('type',     filterType);
+        if (filterChannel) params.set('channel',  filterChannel);
+        if (dateFrom)      params.set('dateFrom', dateFrom);
+        navigate(`/admin/notifications/search?${params.toString()}`);
     };
-    const [pickingDate, setPickingDate] = useState('from');
-    const filtered = notifications.filter(n => {
-        const matchType    = !filterType    || n.type === filterType;
-        const matchChannel = !filterChannel || (n.channel || 'Email') === filterChannel;
-        const matchSearch  = !search
-            || (n.message || '').toLowerCase().includes(search.toLowerCase())
-            || (n.notifyId || '').toString().includes(search);
-        return matchType && matchChannel && matchSearch;
-    });
-
 
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
@@ -112,7 +109,6 @@ const AdminNotificationAllPage = () => {
         return pages;
     };
 
-
     return (
         <div className="anall-wrapper">
             {/* Breadcrumb */}
@@ -127,7 +123,7 @@ const AdminNotificationAllPage = () => {
             <h1 className="anall-title">Quản lý thông báo</h1>
             <p className="anall-subtitle">Quản lý tất cả thông báo đã gửi trong hệ thống</p>
 
-            {/* Filter */}
+            {/* Filter — chỉ để nhập rồi bấm Tìm kiếm → chuyển sang trang search */}
             <div className="anall-filter-card">
                 <div className="anall-filter-row">
                     <div className="anall-filter-group">
@@ -139,7 +135,8 @@ const AdminNotificationAllPage = () => {
                     <div className="anall-filter-group">
                         <label>Loại thông báo</label>
                         <input type="text" placeholder="Nhập tiêu đề" value={filterType}
-                               onChange={e => setFilterType(e.target.value)} />
+                               onChange={e => setFilterType(e.target.value)}
+                               onKeyDown={e => e.key === 'Enter' && handleSearch()} />
                     </div>
                     <div className="anall-filter-group">
                         <label>Kênh gửi</label>
@@ -162,36 +159,19 @@ const AdminNotificationAllPage = () => {
                                 value={dateFrom}
                                 onChange={e => setDateFrom(e.target.value)}
                             />
-
                             {/* Input date ẩn */}
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="date"
                                     ref={dateFromRef}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '0',
-                                        opacity: 0,
-                                        width: '0',
-                                        height: '0',
-                                        pointerEvents: 'none'
-                                    }}
+                                    style={{ position: 'absolute', bottom: '-4px', right: '0', opacity: 0, width: '0', height: '0', pointerEvents: 'none' }}
                                     onChange={e => setDateFrom(e.target.value)}
                                 />
                                 <input
                                     type="date"
                                     ref={dateToRef}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '0',
-                                        opacity: 0,
-                                        width: '0',
-                                        height: '0',
-                                        pointerEvents: 'none'
-                                    }}
-                                    onChange={e => setDateTo(e.target.value)}
+                                    style={{ position: 'absolute', bottom: '-4px', right: '0', opacity: 0, width: '0', height: '0', pointerEvents: 'none' }}
+                                    onChange={e => setDateFrom(e.target.value)}
                                 />
                                 <i
                                     className="fa-regular fa-calendar"
@@ -215,7 +195,7 @@ const AdminNotificationAllPage = () => {
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Table — luôn hiển thị toàn bộ, không lọc */}
             <div className="anall-table-card">
                 {loading ? (
                     <div className="anall-loading">
@@ -235,7 +215,7 @@ const AdminNotificationAllPage = () => {
                         </tr>
                         </thead>
                         <tbody>
-                        {filtered.length === 0 ? (
+                        {notifications.length === 0 ? (
                             <tr>
                                 <td colSpan={7} className="anall-empty">
                                     <i className="fa-regular fa-bell-slash"></i>
@@ -243,7 +223,7 @@ const AdminNotificationAllPage = () => {
                                 </td>
                             </tr>
                         ) : (
-                            filtered.map(n => {
+                            notifications.map(n => {
                                 const cfg   = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
                                 const stCfg = getStatusCfg(n);
                                 return (
@@ -264,9 +244,9 @@ const AdminNotificationAllPage = () => {
                                         <td>{n.channel || 'Email'}</td>
                                         <td className="anall-date-cell">{formatDateTime(n.createdAt)}</td>
                                         <td>
-                                                <span className={`anall-status ${stCfg.className}`}>
-                                                    {stCfg.label}
-                                                </span>
+                                            <span className={`anall-status ${stCfg.className}`}>
+                                                {stCfg.label}
+                                            </span>
                                         </td>
                                         <td>
                                             <button className="anall-detail-btn"

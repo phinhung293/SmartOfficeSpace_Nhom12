@@ -39,7 +39,6 @@
 /* Filter card */
 .anall-filter-card {
     background: #fff;
-    border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.07);
     padding: 20px 24px;
     margin-bottom: 20px;
@@ -47,7 +46,7 @@
 
 .anall-filter-row {
     display: flex;
-    gap: 95px;
+    gap: 100px;
     align-items: flex-end;
     flex-wrap: wrap;
 }
@@ -55,7 +54,7 @@
 .anall-filter-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     width: 220px;
     flex: none;
 }

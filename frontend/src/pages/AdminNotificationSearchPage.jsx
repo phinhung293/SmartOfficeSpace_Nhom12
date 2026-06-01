@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import notificationApi from '../api/notificationApi';
 import './css/AdminNotificationAllPage.css';
 import './css/AdminNotificationSearchPage.css';
@@ -13,6 +13,8 @@ const TYPE_CONFIG = {
     SYSTEM:       { icon: 'fa-circle-info',   color: '#6b7280', label: 'Thông báo hệ thống' },
 };
 
+const PAGE_SIZE_OPTIONS = [10];
+
 function formatDateTime(dateStr) {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
@@ -20,93 +22,134 @@ function formatDateTime(dateStr) {
         + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20];
+function parseNotiId(val) {
+    if (!val) return null;
+    const stripped = val.replace(/^NOTI0*/i, '');
+    const n = parseInt(stripped, 10);
+    return isNaN(n) ? null : n;
+}
+
+function applyFilters(list, { notiId, keyword, userName, filterType, dateFrom }) {
+    let result = [...list];
+
+    if (notiId) {
+        const targetId = parseNotiId(notiId);
+        if (targetId !== null) {
+            result = result.filter(n => n.notifyId === targetId);
+        } else {
+            const q = notiId.replace(/^NOTI0*/i, '').toLowerCase();
+            result = result.filter(n => String(n.notifyId).includes(q));
+        }
+    }
+
+    if (keyword) {
+        const q = keyword.toLowerCase();
+        result = result.filter(n =>
+            (n.message || '').toLowerCase().includes(q) ||
+            (TYPE_CONFIG[n.type]?.label || '').toLowerCase().includes(q)
+        );
+    }
+
+    if (userName) {
+        const q = userName.toLowerCase();
+        result = result.filter(n => (n.userName || '').toLowerCase().includes(q));
+    }
+
+    if (filterType) {
+        result = result.filter(n => n.type === filterType);
+    }
+
+    if (dateFrom) {
+        result = result.filter(n => {
+            if (!n.createdAt) return false;
+            return n.createdAt.slice(0, 10) === dateFrom;
+        });
+    }
+
+    return result;
+}
 
 const AdminNotificationSearchPage = () => {
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
 
-    // Đọc params từ URL để fill lại filter
-    const [keyword,     setKeyword]     = useState(searchParams.get('keyword')  || '');
-    const [filterType,  setFilterType]  = useState(searchParams.get('type')     || '');
-    const [filterChannel, setFilterChannel] = useState(searchParams.get('channel') || '');
-    const [dateFrom,    setDateFrom]    = useState(searchParams.get('dateFrom') || '');
-    const [dateTo,      setDateTo]      = useState(searchParams.get('dateTo')   || '');
+    // ── Filter state ─────────────────────────────────────────────────────────
+    const [notiId,     setNotiId]     = useState('');
+    const [keyword,    setKeyword]    = useState('');
+    const [userName,   setUserName]   = useState('');
+    const [filterType, setFilterType] = useState('');
+    const [dateFrom,   setDateFrom]   = useState('');
 
-    const [results,    setResults]    = useState([]);
-    const [total,      setTotal]      = useState(0);
-    const [loading,    setLoading]    = useState(false);
-    const [page,       setPage]       = useState(0);
-    const [pageSize,   setPageSize]   = useState(10);
-    const [sortOrder,  setSortOrder]  = useState('Mới nhất');
+    // ── Data state ───────────────────────────────────────────────────────────
+    const [allData,   setAllData]   = useState([]);
+    const [filtered,  setFiltered]  = useState([]);
+    const [loading,   setLoading]   = useState(false);
+    const [page,      setPage]      = useState(0);
+    const [pageSize,  setPageSize]  = useState(10);
+    const [sortOrder, setSortOrder] = useState('Mới nhất');
 
-    const dateFromRef = React.useRef(null);
-    const dateToRef   = React.useRef(null);
-    const [pickingDate, setPickingDate] = useState('from');
+    const dateRef = useRef(null);
 
+    // ── Load toàn bộ data một lần khi mount ──────────────────────────────────
     useEffect(() => {
-        doSearch();
-    }, [page, pageSize]);
-
-    const doSearch = async () => {
-        try {
-            setLoading(true);
-            const hasFilter = keyword || filterType || filterChannel || dateFrom || dateTo;
-            let data;
-            if (hasFilter) {
-                const res = await notificationApi.adminSearch({
-                    keyword, type: filterType, dateFrom, dateTo, page, size: pageSize
-                });
-                data = res.data.data;
-            } else {
-                const res = await notificationApi.adminGetAll(page, pageSize);
-                data = res.data.data;
+        const fetchAll = async () => {
+            try {
+                setLoading(true);
+                const res = await notificationApi.adminGetAll(0, 9999);
+                const data = res.data.data;
+                const list = data?.content ?? (Array.isArray(data) ? data : []);
+                setAllData(list);
+                setFiltered(list);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-            if (data?.content) {
-                setResults(data.content);
-                setTotal(data.totalElements ?? data.content.length);
-            } else if (Array.isArray(data)) {
-                setResults(data);
-                setTotal(data.length);
-            } else {
-                setResults([]);
-                setTotal(0);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+        fetchAll();
+    }, []);
 
-    const handleSearch = () => {
+    // ── Lọc real-time mỗi khi filter thay đổi ────────────────────────────────
+    useEffect(() => {
         setPage(0);
-        setSearchParams({ keyword, type: filterType, channel: filterChannel, dateFrom, dateTo });
-        doSearch();
-    };
+        const result = applyFilters(allData, { notiId, keyword, userName, filterType, dateFrom });
+        const sorted = [...result].sort((a, b) => {
+            const ta = new Date(a.createdAt || 0).getTime();
+            const tb = new Date(b.createdAt || 0).getTime();
+            return sortOrder === 'Mới nhất' ? tb - ta : ta - tb;
+        });
+        setFiltered(sorted);
+    }, [notiId, keyword, userName, filterType, dateFrom, sortOrder, allData]);
 
+    // ── Nút Làm mới ──────────────────────────────────────────────────────────
     const handleReset = () => {
-        setKeyword(''); setFilterType(''); setFilterChannel('');
-        setDateFrom(''); setDateTo(''); setPage(0);
-        navigate('/admin/notifications/search');
+        setNotiId(''); setKeyword(''); setUserName('');
+        setFilterType(''); setDateFrom(''); setPage(0);
     };
 
-    const totalPages = Math.ceil(total / pageSize) || 1;
+    // ── Pagination ────────────────────────────────────────────────────────────
+    const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+    const paginated  = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
     const displayPages = Math.max(4, totalPages);
     const renderPageButtons = () => {
         const pages = [];
         const maxVisible = 4;
         let start = Math.max(0, page - 1);
-        let end = Math.min(displayPages - 1, start + maxVisible - 1);
+        let end   = Math.min(displayPages - 1, start + maxVisible - 1);
         if (end - start < maxVisible - 1) start = Math.max(0, end - maxVisible + 1);
         for (let i = start; i <= end; i++) {
             pages.push(
-                <button key={i} className={`anall-page-btn ${i === page ? 'active' : ''}`}
-                        onClick={() => setPage(i)}>{i + 1}</button>
+                <button key={i}
+                        className={`anall-page-btn ${i === page ? 'active' : ''}`}
+                        onClick={() => setPage(i)}>
+                    {i + 1}
+                </button>
             );
         }
         return pages;
     };
+
+    const hasFilter = notiId || keyword || userName || filterType || dateFrom;
 
     return (
         <div className="anall-wrapper">
@@ -122,37 +165,57 @@ const AdminNotificationSearchPage = () => {
             {/* Filter card */}
             <div className="ansearch-filter-card">
                 <div className="ansearch-filter-row">
+
                     <div className="ansearch-filter-group">
                         <label>Notification</label>
-                        <input type="text" placeholder="Nhập mã thông báo" value={keyword}
-                               onChange={e => setKeyword(e.target.value)}
-                               onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                        <input
+                            type="text"
+                            placeholder="Nhập mã thông báo"
+                            value={notiId}
+                            onChange={e => setNotiId(e.target.value)}
+                        />
                     </div>
+
                     <div className="ansearch-filter-group">
                         <label>Tiêu đề</label>
-                        <input type="text" placeholder="Nhập tiêu đề" value={filterType}
-                               onChange={e => setFilterType(e.target.value)} />
+                        <input
+                            type="text"
+                            placeholder="Nhập tiêu đề"
+                            value={keyword}
+                            onChange={e => setKeyword(e.target.value)}
+                        />
                     </div>
+
                     <div className="ansearch-filter-group">
                         <label>Tên khách hàng</label>
-                        <input type="text" placeholder="Nhập tên khách hàng" value={filterChannel}
-                               onChange={e => setFilterChannel(e.target.value)} />
+                        <input
+                            type="text"
+                            placeholder="Nhập tên khách hàng"
+                            value={userName}
+                            onChange={e => setUserName(e.target.value)}
+                        />
                     </div>
+
                     <div className="ansearch-filter-group">
-                        <label>Trạng thái thanh toán</label>
+                        <label>Loại thông báo</label>
                         <div className="anall-select-wrap">
-                            <select value={filterType} onChange={e => setFilterType(e.target.value)}
-                                    style={{ color: filterType === '' ? '#9ca3af' : '#374151', height: 40 }}>
+                            <select
+                                value={filterType}
+                                onChange={e => setFilterType(e.target.value)}
+                                style={{ color: filterType === '' ? '#9ca3af' : '#374151', height: 40 }}
+                            >
                                 <option value="">Tất cả</option>
                                 <option value="BOOKING">Đặt phòng</option>
                                 <option value="PAYMENT">Thanh toán</option>
                                 <option value="CANCELLATION">Hủy phòng</option>
                                 <option value="REMINDER">Nhắc lịch</option>
                                 <option value="SYSTEM">Hệ thống</option>
+                                <option value="PROMOTION">Khuyến mãi</option>
                             </select>
                             <i className="fa-solid fa-chevron-down"></i>
                         </div>
                     </div>
+
                     <div className="ansearch-filter-group">
                         <label>Ngày tạo</label>
                         <div className="anall-date-range">
@@ -160,56 +223,28 @@ const AdminNotificationSearchPage = () => {
                                 type="text"
                                 placeholder="Chọn ngày"
                                 value={dateFrom}
-                                onChange={e => setDateFrom(e.target.value)}
+                                readOnly
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => dateRef.current?.showPicker()}
                             />
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="date"
-                                    ref={dateFromRef}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '0',
-                                        opacity: 0,
-                                        width: '0',
-                                        height: '0',
-                                        pointerEvents: 'none'
-                                    }}
+                                    ref={dateRef}
+                                    style={{ position: 'absolute', bottom: '-4px', right: 0, opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
                                     onChange={e => setDateFrom(e.target.value)}
                                 />
-                                <input
-                                    type="date"
-                                    ref={dateToRef}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '-4px',
-                                        right: '0',
-                                        opacity: 0,
-                                        width: '0',
-                                        height: '0',
-                                        pointerEvents: 'none'
-                                    }}
-                                    onChange={e => setDateTo(e.target.value)}
-                                />
-                                <i
-                                    className="fa-regular fa-calendar"
-                                    style={{ cursor: 'pointer', color: '#9ca3af' }}
-                                    onClick={() => {
-                                        if (pickingDate === 'from') {
-                                            dateFromRef.current?.showPicker();
-                                            setPickingDate('to');
-                                        } else {
-                                            dateToRef.current?.showPicker();
-                                            setPickingDate('from');
-                                        }
-                                    }}
+                                <i className="fa-regular fa-calendar"
+                                   style={{ cursor: 'pointer', color: '#9ca3af' }}
+                                   onClick={() => dateRef.current?.showPicker()}
                                 ></i>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div className="ansearch-btn-row">
-                    <button className="anall-search-btn" onClick={handleSearch}>
+                    <button className="anall-search-btn" onClick={() => {}}>
                         <i className="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                     </button>
                     <button className="ansearch-reset-btn" onClick={handleReset}>
@@ -218,12 +253,16 @@ const AdminNotificationSearchPage = () => {
                 </div>
             </div>
 
-            {/* Kết quả */}
+            {/* Bảng kết quả */}
             <div className="anall-table-card">
                 <div className="ansearch-result-header">
                     <div>
                         <h2 className="ansearch-result-title">Kết quả tìm kiếm</h2>
-                        <p className="ansearch-result-count">Tìm thấy {total} thông báo</p>
+                        <p className="ansearch-result-count">
+                            {hasFilter
+                                ? `Tìm thấy ${filtered.length} thông báo`
+                                : `Hiển thị tất cả ${filtered.length} thông báo`}
+                        </p>
                     </div>
                     <div className="anall-select-wrap">
                         <select value={sortOrder} onChange={e => setSortOrder(e.target.value)}
@@ -253,36 +292,55 @@ const AdminNotificationSearchPage = () => {
                         </tr>
                         </thead>
                         <tbody>
-                        {results.length === 0 ? (
+                        {paginated.length === 0 ? (
                             <tr>
                                 <td colSpan={7} className="anall-empty">
                                     <i className="fa-regular fa-bell-slash"></i>
-                                    <p>Không tìm thấy kết quả</p>
+                                    <p>{hasFilter ? 'Không tìm thấy kết quả phù hợp' : 'Không có thông báo nào'}</p>
                                 </td>
                             </tr>
                         ) : (
-                            results.map(n => {
+                            paginated.map(n => {
                                 const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
                                 return (
                                     <tr key={n.notifyId}>
                                         <td>
-                                                <span className="ansearch-noti-id"
-                                                      onClick={() => navigate(`/admin/notifications/${n.notifyId}`)}>
-                                                    NOTI{String(n.notifyId).padStart(2, '0')}
-                                                </span>
+                                            <span className="ansearch-noti-id"
+                                                  onClick={() => navigate(`/admin/notifications/${n.notifyId}`)}>
+                                                NOTI{String(n.notifyId).padStart(2, '0')}
+                                            </span>
                                         </td>
-                                        <td style={{ textTransform: 'uppercase', fontWeight: 600 }}>
-                                            {cfg.label.split(' ').pop()}
-                                        </td>
-                                        <td>{n.userName || '—'}</td>
-                                        <td>{n.type}</td>
                                         <td>
-                                                <span className={`ansearch-status ${n.isRead ? 'confirmed' : 'pending'}`}>
-                                                    ● {n.isRead ? 'Đã xác nhận' : 'Đang xử lý'}
-                                                </span>
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                                <i className={`fa-solid ${cfg.icon}`}
+                                                   style={{ color: cfg.color, fontSize: 14, marginTop: 2 }}></i>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+                                                        {cfg.label}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                                        {n.message}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td>{formatDateTime(n.createdAt)}</td>
-                                        <td>—</td>
+                                        <td style={{ fontSize: 13 }}>{n.userName || '—'}</td>
+                                        <td>
+                                            <span style={{
+                                                background: cfg.color + '20', color: cfg.color,
+                                                padding: '3px 10px', borderRadius: 20,
+                                                fontSize: 12, fontWeight: 600
+                                            }}>
+                                                {n.type}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`ansearch-status ${n.isRead ? 'confirmed' : 'pending'}`}>
+                                                ● {n.isRead ? 'Đã gửi' : 'Chưa đọc'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontSize: 13 }}>{formatDateTime(n.createdAt)}</td>
+                                        <td style={{ fontSize: 13 }}>—</td>
                                     </tr>
                                 );
                             })
@@ -291,15 +349,29 @@ const AdminNotificationSearchPage = () => {
                     </table>
                 )}
 
-                {/* Pagination */}
+                {/* Pagination — lấy từ code1, dùng pageSize state */}
                 <div className="anall-pagination">
                     <span className="anall-page-info">
-                        Hiển thị {page * pageSize + 1} - {Math.min((page + 1) * pageSize, total)} trong số {total} đặt phòng
+                        Hiển thị {page * pageSize + 1} - {Math.min((page + 1) * pageSize, filtered.length)} trong số {filtered.length} thông báo
                     </span>
                     <div className="anall-page-controls">
-                        <button className="ansearch-nav-btn" onClick={() => setPage(0)} disabled={page === 0}>Trước</button>
+                        <button className="ansearch-nav-btn" onClick={() => setPage(0)} disabled={page === 0}>«</button>
+                        <button className="ansearch-nav-btn" onClick={() => setPage(p => Math.max(p - 1, 0))} disabled={page === 0}>‹</button>
                         {renderPageButtons()}
-                        <button className="ansearch-nav-btn" onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page >= totalPages - 1}>Tiếp</button>
+                        <button className="ansearch-nav-btn" onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))} disabled={page >= totalPages - 1}>›</button>
+                        <button className="ansearch-nav-btn" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>»</button>
+                        <div style={{ marginLeft: 8, position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                            <select
+                                value={pageSize}
+                                onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
+                                style={{ height: 36, borderRadius: 8, border: '1.5px solid #e5e7eb', padding: '0 28px 0 10px', fontSize: 13, color: '#374151', background: '#fff', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}
+                            >
+                                {PAGE_SIZE_OPTIONS.map(s => (
+                                    <option key={s} value={s}>{s}/trang</option>
+                                ))}
+                            </select>
+                            <i className="fa-solid fa-chevron-down" style={{ fontSize: 11, position: 'absolute', right: 9, pointerEvents: 'none', color: '#6b7280' }}></i>
+                        </div>
                     </div>
                 </div>
             </div>

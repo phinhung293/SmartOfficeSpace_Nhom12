@@ -17,7 +17,11 @@ public class NotificationSummaryDto {
     private long paymentCount;            // Loại thanh toán
     private long cancellationCount;       // Loại hủy phòng
 
+    private List<AdminNotificationDto> importantNotifications; // PAYMENT, CANCELLATION, REMINDER
+    private List<AdminNotificationDto> generalNotifications;   // BOOKING, SYSTEM, PROMOTION
     // Danh sách thông báo gần đây (bảng)
     private List<AdminNotificationDto> recentNotifications;
     private List<AdminNotificationDto> todayNotifications;
+
+
 }

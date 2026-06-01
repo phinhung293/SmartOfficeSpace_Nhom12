@@ -75,7 +75,7 @@ const AdminNotificationPage = () => {
                     <p className="anp-subtitle">Quản lý hệ thống thông báo và các hoạt động của người dùng</p>
                 </div>
                 <div className="anp-header-actions">
-                    <button className="anp-search-btn">
+                    <button className="anp-search-btn" onClick={() => navigate('/admin/notifications/search')}>
                         <i className="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                     </button>
                 </div>
