@@ -1,7 +1,7 @@
 // src/pages/Payment.jsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createQRPayment, simulatePayment } from '../api/paymentApi';
+import { createQRPayment, confirmPayment } from '../api/paymentApi';
 import './css/Payment.css';
 
 const vnd = (n) => Number(n || 0).toLocaleString('vi-VN');
@@ -201,7 +201,7 @@ export default function Payment() {
             <div className="divider" />
             <div className="total-row"><span className="total-row__label">Tổng tiền</span><span className="total-row__value">{vnd(totalAmount)}đ</span></div>
             <div className="booking-card__actions">
-              <button className="btn btn--primary" onClick={handlePayment} disabled={loading}>{loading ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN'}</button>
+              <button className="btn btn--primary" onClick={handleConfirmPayment} disabled={loading}>{loading ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN'}</button>
               <button className="btn btn--outline" onClick={() => navigate(-1)}>QUAY LẠI</button>
             </div>
           </aside>
