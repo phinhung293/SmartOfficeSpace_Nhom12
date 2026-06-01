@@ -26,6 +26,8 @@ public class DataInitializer implements CommandLineRunner {
     private final AmenityRepository      amenityRepository;
     private final BookingStatusRepository bookingStatusRepository;
     private final BookingRepository      bookingRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentStatusRepository paymentStatusRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -397,6 +399,36 @@ public class DataInitializer implements CommandLineRunner {
 
             System.out.println(">> [DataSeeder] ✅ Đã seed 5 booking TEST thành công!");
         }
+        //PHẦN PAYMENT
+        // Khởi tạo phương thức thanh toán
+        if (paymentMethodRepository.count() == 0) {
+            PaymentMethod sepay = new PaymentMethod();
+            sepay.setMethodName("SEPAY");
+            paymentMethodRepository.save(sepay);
+
+            PaymentMethod cash = new PaymentMethod();
+            cash.setMethodName("CASH");
+            paymentMethodRepository.save(cash);
+
+            System.out.println(">> [DataSeeder] Đã khởi tạo phương thức thanh toán.");
+        }
+
+// Khởi tạo trạng thái thanh toán
+        if (paymentStatusRepository.count() == 0) {
+            PaymentStatus pending = new PaymentStatus();
+            pending.setStatusName("PENDING");
+            paymentStatusRepository.save(pending);
+
+            PaymentStatus success = new PaymentStatus();
+            success.setStatusName("SUCCESS");
+            paymentStatusRepository.save(success);
+
+            PaymentStatus failed = new PaymentStatus();
+            failed.setStatusName("FAILED");
+            paymentStatusRepository.save(failed);
+
+            System.out.println(">> [DataSeeder] Đã khởi tạo trạng thái thanh toán.");
+        }
     }
 
     // ── Helper finders ────────────────────────────────────────────────
@@ -464,4 +496,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         return b;
     }
+
+
+
 }

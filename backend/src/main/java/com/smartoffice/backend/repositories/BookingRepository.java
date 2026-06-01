@@ -48,10 +48,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
           AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
     """)
     boolean hasOverlappingExcludeSelf(
-            @Param("roomId")           Integer roomId,
+            @Param("roomId") Integer roomId,
             @Param("excludeBookingId") Integer excludeBookingId,
-            @Param("requestedStart")   LocalDateTime requestedStart,
-            @Param("requestedEnd")     LocalDateTime requestedEnd
+            @Param("requestedStart") LocalDateTime requestedStart,
+            @Param("requestedEnd") LocalDateTime requestedEnd
     );
 
     /* ─── Lấy danh sách overlap (để hiển thị tên trong thông báo lỗi) ─── */
@@ -64,10 +64,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
           AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
     """)
     List<Booking> findAllOverlappingExcludeSelf(
-            @Param("roomId")           Integer roomId,
+            @Param("roomId") Integer roomId,
             @Param("excludeBookingId") Integer excludeBookingId,
-            @Param("requestedStart")   LocalDateTime requestedStart,
-            @Param("requestedEnd")     LocalDateTime requestedEnd
+            @Param("requestedStart") LocalDateTime requestedStart,
+            @Param("requestedEnd") LocalDateTime requestedEnd
     );
 
     /* ─── Kiểm tra overlap với PESSIMISTIC LOCK (dùng khi tạo booking) ─── */
@@ -141,16 +141,27 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     /* ─── Đếm theo BookingCode prefix để tạo sequence ─── */
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.bookingCode LIKE :prefix%")
     long countByBookingCodePrefix(@Param("prefix") String prefix);
+
     /* ─── Tìm booking CONFIRMED sắp bắt đầu trong khoảng thời gian ─── */
     @Query("""
-        SELECT b FROM Booking b
-        WHERE b.bookingStatus.statusName = 'CONFIRMED'
-          AND b.startTime >= :from
-          AND b.startTime < :to
-    """)
+    SELECT b FROM Booking b
+    WHERE b.bookingStatus.statusName = 'CONFIRMED'
+      AND b.startTime >= :from
+      AND b.startTime < :to
+""")
     List<Booking> findUpcomingConfirmed(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
 
+    // PAYMENT
+    Optional<Booking> findByBookingCode(String bookingCode);
+
+    @Query("SELECT b FROM Booking b WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT' AND b.createdAt < :time")
+    List<Booking> findPendingPaymentOlderThan(@Param("time") LocalDateTime time);
+
+    Optional<Booking> findByBookingIdAndUser_UserId(
+            Integer bookingId,
+            Integer userId
+    );
 }

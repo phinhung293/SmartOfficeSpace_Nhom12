@@ -6,6 +6,7 @@ import com.smartoffice.backend.dto.admin.AdminUpdateUserRequest;
 import com.smartoffice.backend.dto.admin.AdminNotificationDto;
 import com.smartoffice.backend.dto.admin.NotificationSummaryDto;
 import com.smartoffice.backend.dto.booking.BookingResponse;
+import com.smartoffice.backend.dto.payment.AdminPaymentResponse;
 import com.smartoffice.backend.dto.room.RoomUpdateRequest;
 import com.smartoffice.backend.dto.room.RoomResponse;
 import com.smartoffice.backend.entities.*;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,6 +45,9 @@ public class AdminController {
     private final WorkspaceTypeRepository workspaceTypeRepository;
     private final AmenityRepository amenityRepository;
     private final NotificationService notificationService;
+
+    private final PaymentRepository paymentRepository;
+    private final InvoiceRepository invoiceRepository;
 
     // ─── USERS ───────────────────────────────────────────────
 
@@ -378,4 +383,89 @@ public class AdminController {
             return dto;
         }).collect(Collectors.toList());
     }
+
+
+    @GetMapping("/payments")
+    public ApiResponse<List<AdminPaymentResponse>> getAllPayments() {
+
+        List<AdminPaymentResponse> result =
+                paymentRepository.findAll()
+                        .stream()
+                        .map(payment -> {
+
+                            AdminPaymentResponse dto =
+                                    new AdminPaymentResponse();
+
+                            dto.setPaymentId(
+                                    payment.getPaymentId());
+
+                            dto.setBookingId(
+                                    payment.getBooking()
+                                            .getBookingId());
+
+                            dto.setCustomerName(
+                                    payment.getBooking()
+                                            .getUser()
+                                            .getName());
+
+                            dto.setRoomName(
+                                    payment.getBooking()
+                                            .getRoom()
+                                            .getName());
+
+                            dto.setAmount(
+                                    payment.getAmount());
+
+                            dto.setPaymentMethod(
+                                    payment.getPaymentMethod()
+                                            .getMethodName());
+
+                            dto.setStatus(
+                                    payment.getPaymentStatus()
+                                            .getStatusName());
+
+                            dto.setTransactionCode(
+                                    payment.getTransactionCode());
+
+                            dto.setPaymentDate(
+                                    payment.getPaymentDate());
+
+                            return dto;
+                        })
+                        .toList();
+
+        return ApiResponse.success(result);
+    }
+    @GetMapping("/payments/{id}")
+    public ApiResponse<?> getPaymentDetail(
+            @PathVariable Integer id
+    ){
+        Payment payment =
+                paymentRepository.findById(id)
+                        .orElseThrow();
+
+        Invoice invoice =
+                invoiceRepository.findByPayment(payment);
+
+        Map<String, Object> result = new HashMap<>();
+
+        result.put("paymentId", payment.getPaymentId());
+        result.put("bookingId", payment.getBooking().getBookingId());
+        result.put("customerName", payment.getBooking().getUser().getName());
+        result.put("email", payment.getBooking().getUser().getEmail());
+        result.put("roomName", payment.getBooking().getRoom().getName());
+        result.put("amount", payment.getAmount());
+        result.put("transactionCode", payment.getTransactionCode());
+        result.put("paymentMethod", payment.getPaymentMethod().getMethodName());
+        result.put("status", payment.getPaymentStatus().getStatusName());
+        result.put("paymentDate", payment.getPaymentDate());
+
+        result.put("invoiceId",
+                invoice != null
+                        ? invoice.getInvoiceId()
+                        : null);
+
+        return ApiResponse.success(result);
+    }
 }
+

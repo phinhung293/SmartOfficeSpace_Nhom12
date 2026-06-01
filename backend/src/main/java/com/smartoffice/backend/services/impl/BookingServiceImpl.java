@@ -58,7 +58,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse createBooking(BookingRequest request, Integer userId) {
 
         LocalDateTime startTime = LocalDateTime.of(request.getDate(), request.getStartTime());
-        LocalDateTime endTime   = LocalDateTime.of(request.getDate(), request.getEndTime());
+        LocalDateTime endTime = LocalDateTime.of(request.getDate(), request.getEndTime());
 
         if (!endTime.isAfter(startTime)) {
             throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
@@ -107,7 +107,7 @@ public class BookingServiceImpl implements BookingService {
 
         // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} ──
         String datePart = request.getDate().format(DateTimeFormatter.ofPattern("yyMMdd"));
-        String prefix   = "WS" + datePart + "-";
+        String prefix = "WS" + datePart + "-";
         saved.setBookingCode(prefix + String.format("%03d", saved.getBookingId()));
         saved = bookingRepository.save(saved);
 
@@ -126,13 +126,13 @@ public class BookingServiceImpl implements BookingService {
     public SlotStatusResponse getSlotStatus(Integer roomId, LocalDate date) {
 
         LocalDateTime dayStart = LocalDateTime.of(date, LocalTime.of(8, 0));
-        LocalDateTime dayEnd   = LocalDateTime.of(date, LocalTime.of(22, 0));
+        LocalDateTime dayEnd = LocalDateTime.of(date, LocalTime.of(22, 0));
 
         List<Booking> dayBookings = bookingRepository.findBookingsForDay(roomId, dayStart, dayEnd);
 
-        List<Integer> bookedSlots  = new ArrayList<>();
-        List<Integer> lockedSlots  = new ArrayList<>();
-        List<Integer> maintSlots   = new ArrayList<>();
+        List<Integer> bookedSlots = new ArrayList<>();
+        List<Integer> lockedSlots = new ArrayList<>();
+        List<Integer> maintSlots = new ArrayList<>();
 
         for (Booking b : dayBookings) {
             String statusName = b.getBookingStatus().getStatusName();
@@ -162,7 +162,7 @@ public class BookingServiceImpl implements BookingService {
         int base = 8;
         for (int h = base; h < 22; h++) {
             LocalTime slotStart = LocalTime.of(h, 0);
-            LocalTime slotEnd   = LocalTime.of(h + 1, 0);
+            LocalTime slotEnd = LocalTime.of(h + 1, 0);
             if (!slotStart.isBefore(s) && !slotEnd.isAfter(e)) {
                 indexes.add(h - base);
             }
@@ -315,9 +315,46 @@ public class BookingServiceImpl implements BookingService {
                 .filter(a -> a != null)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
+
     @Override
     public Booking findById(Integer id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+    }
+
+    @Override
+    public BookingResponse getMyBookingById(Integer bookingId, Integer userId) {
+
+        Booking booking = bookingRepository
+                .findByBookingIdAndUser_UserId(bookingId, userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+
+        return toResponse(booking);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse cancelMyBooking(Integer bookingId, Integer userId) {
+
+        Booking booking = bookingRepository
+                .findByBookingIdAndUser_UserId(bookingId, userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+
+        String status = booking.getBookingStatus().getStatusName();
+
+        if ("CANCELLED".equals(status)) {
+            throw new RuntimeException("Booking đã bị hủy.");
+        }
+
+        if ("COMPLETED".equals(status)) {
+            throw new RuntimeException("Không thể hủy booking đã hoàn thành.");
+        }
+
+        booking.setBookingStatus(getStatus("CANCELLED"));
+        booking.setLockedUntil(null);
+
+        bookingRepository.save(booking);
+
+        return toResponse(booking);
     }
 }

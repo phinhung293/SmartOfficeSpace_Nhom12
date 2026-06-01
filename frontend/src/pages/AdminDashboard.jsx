@@ -5,9 +5,10 @@ import {
     adminGetAllBookings, adminCancelBooking, adminConfirmBooking, adminGetAllRooms
 } from '../api/bookingApi';
 import axiosInstance from '../api/axiosInstance';
-
+import AdminPayment from './AdminPayment';
 // Import thêm component quản lý người dùng từ nhánh develop
 import UserManagement from './UserManagement';
+
 
 const vnd = (n) => Number(n || 0).toLocaleString('vi-VN');
 
@@ -146,10 +147,9 @@ const AdminDashboard = () => {
                 {activeMenu === 'lich-su'   && <AdminBookingManager />}
                 {activeMenu === 'dieu-phoi' && <AdminSpaceCoordinator />}
 
-                {/* Bẫy hiển thị cho các menu phụ chưa phát triển */}
-                {['thanh-toan', 'thong-ke'].includes(activeMenu) && (
-                    <div style={{padding: '30px'}}><h3>Giao diện đang phát triển...</h3></div>
-                )}
+                {/* Thanh toán & Hóa đơn */}
+                {activeMenu === 'thanh-toan' && <AdminPayment />}
+
             </main>
         </div>
     );

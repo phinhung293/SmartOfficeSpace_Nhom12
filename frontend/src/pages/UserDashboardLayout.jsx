@@ -11,7 +11,7 @@ const UserDashboardLayout = () => {
                         <i className="fa-regular fa-user"></i> Thông tin cá nhân
                     </NavLink>
                     
-                    <NavLink to="/profile/booking-history" className={({isActive}) => isActive ? "menu-item active" : "menu-item"}>
+                    <NavLink to="/my-bookings" className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}>
                         <i className="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt phòng
                     </NavLink>
                     

@@ -43,6 +43,7 @@ public interface BookingService {
      * Admin xác nhận thanh toán.
      */
     BookingResponse confirmPayment(Integer bookingId);
+
     /**
      * Đếm số đơn trong ngày (admin dashboard).
      */
@@ -57,4 +58,8 @@ public interface BookingService {
      * Lấy chi tiết 1 booking.
      */
     Booking findById(Integer id);
+
+    BookingResponse getMyBookingById(Integer bookingId, Integer userId);
+
+    BookingResponse cancelMyBooking(Integer bookingId, Integer userId);
 }

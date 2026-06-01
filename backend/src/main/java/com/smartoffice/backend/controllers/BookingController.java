@@ -79,8 +79,57 @@ public class BookingController {
         );
         return ApiResponse.success(result);
     }
+
     @GetMapping("/{id}")
     public ApiResponse<Booking> getOne(@PathVariable Integer id) {
         return ApiResponse.success(bookingService.findById(id));
+    }
+
+    /**
+     * GET /api/bookings/my-bookings/{id}
+     * Lấy chi tiết booking của user hiện tại
+     */
+    @GetMapping("/my-bookings/{id}")
+    public ApiResponse<BookingResponse> getMyBookingById(
+            @PathVariable Integer id,
+            Principal principal
+    ) {
+        if (principal == null) {
+            throw new RuntimeException("Vui lòng đăng nhập.");
+        }
+
+        String email = principal.getName();
+
+        Integer userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + email))
+                .getUserId();
+
+        BookingResponse result = bookingService.getMyBookingById(id, userId);
+
+        return ApiResponse.success(result);
+    }
+
+    /**
+     * PUT /api/bookings/{id}/cancel
+     * User tự hủy booking của mình
+     */
+    @PutMapping("/{id}/cancel")
+    public ApiResponse<BookingResponse> cancelMyBooking(
+            @PathVariable Integer id,
+            Principal principal
+    ) {
+        if (principal == null) {
+            throw new RuntimeException("Vui lòng đăng nhập.");
+        }
+
+        String email = principal.getName();
+
+        Integer userId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"))
+                .getUserId();
+
+        BookingResponse result = bookingService.cancelMyBooking(id, userId);
+
+        return ApiResponse.success(result);
     }
 }

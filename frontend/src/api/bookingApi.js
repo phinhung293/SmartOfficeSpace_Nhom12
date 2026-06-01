@@ -16,6 +16,9 @@ export const getMyBookings = (page = 0, size = 10) =>
     axiosInstance.get(`${BASE}/my-bookings`, { params: { page, size } })
         .then(r => r.data.data);
 
+export const getMyBookingById = (id) =>
+    axiosInstance.get(`${BASE}/my-bookings/${id}`).then(r => r.data.data);
+
 // ─── Admin ──────────────────────────────────────────────────────────────────
 
 /** Admin: lấy toàn bộ booking */

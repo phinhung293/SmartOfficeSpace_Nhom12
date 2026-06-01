@@ -30,11 +30,15 @@ import RoomDetail from './pages/Roomdetail';
 import Booking from './pages/Booking';
 import Payment from './pages/Payment';
 
-// Thông báo user
+// Payment
+import BookingSuccess from './pages/BookingSuccess';
+import BookingDetail from './pages/BookingDetail';
+
+// User Notification
 import NotificationsPage from './pages/NotificationsPage';
 import NotificationDetailPage from './pages/NotificationDetailPage';
 
-// Thông báo admin
+// Admin Notification
 import AdminNotificationPage from './pages/AdminNotificationPage';
 import AdminNotificationAllPage from './pages/AdminNotificationAllPage';
 import AdminNotificationSearchPage from './pages/AdminNotificationSearchPage';
@@ -47,25 +51,25 @@ const Home = () => (
 );
 
 // Component thông báo đặt phòng thành công
-const BookingSuccess = () => (
-    <div style={{ padding: '80px', textAlign: 'center' }}>
-        <i
-            className="fa-solid fa-circle-check"
-            style={{
-                fontSize: 64,
-                color: '#1a7f3c',
-                marginBottom: 20,
-                display: 'block'
-            }}
-        ></i>
-        <h2 style={{ fontSize: 28, color: '#1a7f3c' }}>
-            Đặt phòng thành công!
-        </h2>
-        <p style={{ color: '#666', marginTop: 12 }}>
-            Chúng tôi sẽ gửi xác nhận qua email sớm nhất.
-        </p>
-    </div>
-);
+// const BookingSuccess = () => (
+//     <div style={{ padding: '80px', textAlign: 'center' }}>
+//         <i
+//             className="fa-solid fa-circle-check"
+//             style={{
+//                 fontSize: 64,
+//                 color: '#1a7f3c',
+//                 marginBottom: 20,
+//                 display: 'block'
+//             }}
+//         ></i>
+//         <h2 style={{ fontSize: 28, color: '#1a7f3c' }}>
+//             Đặt phòng thành công!
+//         </h2>
+//         <p style={{ color: '#666', marginTop: 12 }}>
+//             Chúng tôi sẽ gửi xác nhận qua email sớm nhất.
+//         </p>
+//     </div>
+// );
 
 // Component phụ: Xử lý ẩn/hiện Header & Footer
 const LayoutWrapper = ({ children }) => {
@@ -123,6 +127,9 @@ function App() {
                     <Route path="/payment" element={<Payment />} />
                     <Route path="/booking-success" element={<BookingSuccess />} />
 
+                    {/* Booking Detail */}
+                    <Route path="/booking-detail/:bookingId" element={<BookingDetail />} />
+
                     {/* INFO */}
                     <Route path="/utilities" element={<Utilities />} />
                     <Route path="/news" element={<News />} />
@@ -142,6 +149,9 @@ function App() {
                         <Route index element={<Navigate to="info" replace />} />
                         <Route path="info" element={<ProfileInfo />} />
                         <Route path="change-password" element={<ChangePassword />} />
+                    
+                        {/* Lịch sử hóa đơn nằm trong sidebar profile */}
+                        <Route path="invoice-history" element={<BookingHistory />} /> 
                     </Route>
 
                     {/* BOOKING HISTORY */}
