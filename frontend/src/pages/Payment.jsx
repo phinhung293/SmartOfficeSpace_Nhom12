@@ -32,6 +32,7 @@ export default function Payment() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const booking = state?.booking;
+  console.log(JSON.stringify(booking, null, 2));
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +51,8 @@ export default function Payment() {
 
   const duration = booking.durationHours ||
     Math.ceil((new Date(booking.endTime) - new Date(booking.startTime)) / (1000 * 60 * 60));
-  const unitPrice = booking.totalAmount / duration;
+
+  const unitPrice = booking.pricePerHour || 0;
   const serviceFee = Math.round(booking.totalAmount * 0.05);
   const totalAmount = booking.totalAmount + serviceFee;
 
