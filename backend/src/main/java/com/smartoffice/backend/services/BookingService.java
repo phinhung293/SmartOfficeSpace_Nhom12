@@ -56,4 +56,5 @@ public interface BookingService {
 
     BookingResponse cancelMyBooking(Integer bookingId, Integer userId);
 
+
 }

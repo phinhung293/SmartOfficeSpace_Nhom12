@@ -20,4 +20,7 @@ public class BookingResponse {
     private String status;
     private LocalDateTime createdAt;
     private Long durationHours;
+    private String userPhone;
+    private BigDecimal pricePerHour;
+    private Integer capacity;
 }

@@ -270,24 +270,42 @@ public class BookingServiceImpl implements BookingService {
 
     private BookingResponse toResponse(Booking b) {
         BookingResponse r = new BookingResponse();
+
         r.setBookingId(b.getBookingId());
         r.setBookingCode(b.getBookingCode());
+
         r.setUserName(b.getUser().getName());
         r.setUserEmail(b.getUser().getEmail());
+        r.setUserPhone(b.getUser().getPhone());
+
         r.setRoomName(b.getRoom().getName());
         r.setRoomImageUrl(b.getRoom().getImageUrl());
-        if (b.getRoom().getWorkspaceType() != null)
-            r.setWorkspaceType(b.getRoom().getWorkspaceType().getTypeName());
+
+        if (b.getRoom().getWorkspaceType() != null) {
+            r.setWorkspaceType(
+                    b.getRoom().getWorkspaceType().getTypeName()
+            );
+        }
+
+        r.setPricePerHour(b.getRoom().getPrice());
+        r.setCapacity(b.getRoom().getCapacity());
+
         r.setStartTime(b.getStartTime());
         r.setEndTime(b.getEndTime());
+
         r.setTotalAmount(b.getTotalAmount());
         r.setStatus(b.getBookingStatus().getStatusName());
         r.setCreatedAt(b.getCreatedAt());
-        if (b.getStartTime() != null && b.getEndTime() != null)
-            r.setDurationHours(java.time.Duration.between(b.getStartTime(), b.getEndTime()).toHours());
+
+        if (b.getStartTime() != null && b.getEndTime() != null) {
+            r.setDurationHours(
+                    java.time.Duration
+                            .between(b.getStartTime(), b.getEndTime())
+                            .toHours()
+            );
+        }
         return r;
     }
-
     // ─── 7. ĐẾM ĐƠN HÔM NAY ─────────────────────────────────────────────────
 
     @Override

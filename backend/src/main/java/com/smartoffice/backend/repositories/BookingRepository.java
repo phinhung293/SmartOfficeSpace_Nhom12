@@ -154,4 +154,5 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
             Integer bookingId,
             Integer userId
     );
+
 }
