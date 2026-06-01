@@ -1,3 +1,4 @@
+// src/pages/InvoiceHistory.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyBookings } from "../api/bookingApi";
@@ -6,15 +7,9 @@ const vnd = (n) => Number(n || 0).toLocaleString("vi-VN");
 
 const STATUS_MAP = {
     PENDING_PAYMENT: { label: "Chờ thanh toán", color: "#b45309", bg: "#fef3c7" },
-    CONFIRMED:       { label: "Đã xác nhận",    color: "#1a7f3c", bg: "#dcfce7" },
+    CONFIRMED:       { label: "Đã thanh toán", color: "#1a7f3c", bg: "#dcfce7" },
     CANCELLED:       { label: "Đã hủy",         color: "#ef4444", bg: "#fee2e2" },
     EXPIRED:         { label: "Hết hạn",         color: "#64748b", bg: "#f1f5f9" },
-};
-
-const fmt = (dt) => {
-    if (!dt) return "—";
-    const d = new Date(dt);
-    return `${d.toLocaleDateString("vi-VN")} ${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
 const fmtTime = (dt) => {
@@ -22,14 +17,12 @@ const fmtTime = (dt) => {
     return new Date(dt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 };
 
-export default function BookingHistory() {
+export default function InvoiceHistory() {
     const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-
-
     const token = localStorage.getItem("token");
 
     const fetchBookings = useCallback(async () => {
@@ -47,7 +40,7 @@ export default function BookingHistory() {
 
     useEffect(() => {
         if (!token) {
-            navigate("/login", { state: { message: "Vui lòng đăng nhập để xem lịch sử đặt phòng." } });
+            navigate("/login", { state: { message: "Vui lòng đăng nhập để xem lịch sử hóa đơn." } });
             return;
         }
         fetchBookings();
@@ -64,25 +57,13 @@ export default function BookingHistory() {
             </span>
         );
     };
-    // ── Navigate đến BookingDetail với state đúng ─────────────────────────
-    const handleViewDetail = (bookingItem) => {
-        navigate(`/booking-detail/${bookingItem.bookingId}`, {
-            state: {
-                fromHistory: true,
-                booking: bookingItem
-            }
-        });
-    };
 
+ 
 
     return (
-        <div style={{ minHeight: "70vh", padding: "40px 20px", maxWidth: 1000, margin: "0 auto" }}>
-            <div style={{ marginBottom: 28 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
-                    Lịch sử đặt phòng
-                </h1>
-                <p style={{ color: "#64748b", fontSize: 14 }}>Tất cả đơn đặt phòng của bạn</p>
-            </div>
+        <div style={{ minHeight: "70vh", padding: "20px", maxWidth: 1000, margin: "0 auto" }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginBottom: 8 }}>Lịch sử hóa đơn</h1>
+            <p style={{ color: "#64748b", fontSize: 14, marginBottom: 24 }}>Tất cả hóa đơn đặt phòng của bạn</p>
 
             {loading ? (
                 <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
@@ -91,13 +72,13 @@ export default function BookingHistory() {
                 </div>
             ) : bookings.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 60, background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                    <i className="fa-regular fa-calendar-xmark" style={{ fontSize: 48, color: "#cbd5e1", marginBottom: 16 }}></i>
-                    <p style={{ color: "#64748b" }}>Bạn chưa có đơn đặt phòng nào.</p>
+                    <i className="fa-regular fa-file-lines" style={{ fontSize: 48, color: "#cbd5e1", marginBottom: 16 }}></i>
+                    <p style={{ color: "#64748b" }}>Bạn chưa có hóa đơn nào.</p>
                     <button
                         onClick={() => navigate("/spaces")}
                         style={{ marginTop: 16, padding: "10px 24px", background: "#003db5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}
                     >
-                        Tìm phòng ngay
+                        Đặt phòng ngay
                     </button>
                 </div>
             ) : (
@@ -110,10 +91,13 @@ export default function BookingHistory() {
                                 style={{
                                     background: "#fff", borderRadius: 12,
                                     border: "1.5px solid #e2e8f0",
-                                    padding: "16px 20px", cursor: "pointer",
-                                    transition: "border-color 0.2s",
+                                    padding: "16px 20px",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
                                     display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center"
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.borderColor = "#003db5"}
+                                onMouseLeave={(e) => e.currentTarget.style.borderColor = "#e2e8f0"}
                             >
                                 {/* Image */}
                                 <div style={{ width: 64, height: 64, borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
@@ -129,14 +113,14 @@ export default function BookingHistory() {
                                     <div style={{ fontSize: 13, color: "#64748b", marginBottom: 2 }}>
                                         <i className="fa-regular fa-calendar" style={{ marginRight: 6 }}></i>
                                         {new Date(b.startTime).toLocaleDateString("vi-VN")} &nbsp;|&nbsp;
-                                        {fmtTime(b.startTime)} – {fmtTime(b.endTime)} ({b.durationHours} giờ)
+                                        {fmtTime(b.startTime)} – {fmtTime(b.endTime)}
                                     </div>
                                     <div style={{ fontSize: 13, color: "#64748b" }}>
-                                        Mã đơn: <strong>{b.bookingCode}</strong>
+                                        Mã hóa đơn: <strong>{b.bookingCode}</strong>
                                     </div>
                                 </div>
 
-                                {/* Amount */}
+                                {/* Amount & Status */}
                                 <div style={{ textAlign: "right" }}>
                                     <div style={{ fontWeight: 700, color: "#003db5", fontSize: 16 }}>
                                         {vnd(b.totalAmount)}đ
@@ -145,31 +129,55 @@ export default function BookingHistory() {
                                         {getStatusBadge(b.status)}
                                     </div>
                                 </div>
-                                
                             </div>
                         ))}
                     </div>
 
-                           
-
                     {/* Pagination */}
                     {totalPages > 1 && (
                         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 24 }}>
-                            {Array.from({ length: totalPages }, (_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setPage(i)}
-                                    style={{
-                                        width: 36, height: 36, borderRadius: "50%", border: "1.5px solid",
-                                        borderColor: i === page ? "#003db5" : "#e2e8f0",
-                                        background: i === page ? "#003db5" : "#fff",
-                                        color: i === page ? "#fff" : "#1e293b",
-                                        fontWeight: 600, cursor: "pointer", fontSize: 14
-                                    }}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
+                            <button
+                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                disabled={page === 0}
+                                style={{
+                                    width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #e2e8f0",
+                                    background: "#fff", cursor: page === 0 ? "not-allowed" : "pointer", opacity: page === 0 ? 0.5 : 1
+                                }}
+                            >
+                                <i className="fa-solid fa-chevron-left" style={{ fontSize: 12 }}></i>
+                            </button>
+                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                let pageNum = i;
+                                if (totalPages > 5 && page > 2) {
+                                    pageNum = page - 2 + i;
+                                    if (pageNum >= totalPages) return null;
+                                }
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => setPage(pageNum)}
+                                        style={{
+                                            width: 36, height: 36, borderRadius: "50%", border: "1.5px solid",
+                                            borderColor: pageNum === page ? "#003db5" : "#e2e8f0",
+                                            background: pageNum === page ? "#003db5" : "#fff",
+                                            color: pageNum === page ? "#fff" : "#1e293b",
+                                            fontWeight: 600, cursor: "pointer", fontSize: 14
+                                        }}
+                                    >
+                                        {pageNum + 1}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                disabled={page >= totalPages - 1}
+                                style={{
+                                    width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #e2e8f0",
+                                    background: "#fff", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", opacity: page >= totalPages - 1 ? 0.5 : 1
+                                }}
+                            >
+                                <i className="fa-solid fa-chevron-right" style={{ fontSize: 12 }}></i>
+                            </button>
                         </div>
                     )}
                 </>

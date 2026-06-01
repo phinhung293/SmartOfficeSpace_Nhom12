@@ -1,0 +1,438 @@
+/* ===== Payment Page ===== */
+.payment-breadcrumb {
+  background: #f5f7ff;
+  border-bottom: 1px solid #e8ecf7;
+  padding: 12px 40px;
+}
+.payment-breadcrumb__text {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+.payment-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 40px 60px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0 0 28px 0;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.alert-error {
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #cf1322;
+}
+
+/* ===== Layout ===== */
+.payment-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* ===== LEFT: Payment Methods ===== */
+.payment-methods__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a1128;
+  margin: 0 0 16px 0;
+}
+
+.payment-option {
+  border: 1.5px solid #dde3f0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
+  overflow: hidden;
+}
+.payment-option:hover {
+  border-color: #0046d5;
+}
+.payment-option--selected {
+  border-color: #0046d5;
+  background: #f5f8ff;
+}
+
+.payment-option__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+/* Radio circle */
+.radio-circle {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+.radio-circle--checked {
+  border-color: #0046d5;
+  border-width: 6px;
+  background: #fff;
+}
+
+.payment-option__info {
+  flex: 1;
+}
+.payment-option__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a1128;
+  margin: 0 0 2px 0;
+}
+.payment-option__desc {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+.payment-option__icon-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.payment-option__brand {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.payment-option__chevron {
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+  width: 16px;
+  height: 16px;
+}
+.payment-option__chevron svg {
+  width: 16px;
+  height: 16px;
+}
+.payment-option__chevron--up svg {
+  transform: rotate(180deg);
+}
+
+.cash-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  border-radius: 8px;
+  border: 1.5px solid #e8f5e9;
+  background: #f0fff4;
+}
+.cash-icon svg {
+  width: 36px;
+  height: 24px;
+}
+
+/* ===== QR Expand (inline) ===== */
+.payment-option__qr-expand {
+  border-top: 1px solid #e0e8ff;
+  background: #f5f8ff;
+  padding: 20px 18px 20px 56px;
+  animation: expandDown 0.2s ease;
+}
+@keyframes expandDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.qr-expand-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.qr-image-wrap {
+  flex-shrink: 0;
+}
+.qr-real-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  border: 2px solid #dde3f0;
+}
+.qr-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  border: 2px solid #dde3f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qr-loading-icon svg {
+  width: 70px;
+  height: 70px;
+}
+.qr-instructions__text {
+  font-size: 13px;
+  color: #444;
+  margin: 0 0 10px 0;
+  line-height: 1.6;
+}
+.qr-instructions__timer {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+.qr-countdown {
+  color: #e84040;
+  font-weight: 700;
+  font-size: 14px;
+}
+.btn-refresh-qr {
+  margin-top: 8px;
+  background: none;
+  border: 1px solid #0046d5;
+  color: #0046d5;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-refresh-qr:hover { background: #f0f5ff; }
+
+/* ===== Security Notice ===== */
+.security-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0f5ff;
+  border: 1px solid #d0dcff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+.security-notice__icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.security-notice__icon svg {
+  width: 16px;
+  height: 16px;
+}
+.security-notice__text {
+  font-size: 13px;
+  color: #3357b0;
+  margin: 0;
+}
+
+/* ===== RIGHT: Booking Card ===== */
+.booking-card {
+  border: 1.5px solid #dde3f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #fff;
+  position: sticky;
+  top: 20px;
+}
+.booking-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0 0 20px 0;
+}
+
+/* Room summary */
+.room-summary {
+  display: flex;
+  gap: 14px;
+}
+.room-summary__image {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.room-summary__info { flex: 1; }
+.room-summary__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+.room-summary__badge {
+  display: inline-block;
+  background: #e8f0ff;
+  color: #0046d5;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+.room-summary__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+.room-summary__meta svg {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  flex-shrink: 0;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: #eef1f8;
+  margin: 16px 0;
+}
+
+/* Booking time */
+.booking-time__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0 0 12px 0;
+}
+.booking-time__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.booking-time__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+.booking-time__label svg {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  flex-shrink: 0;
+}
+.booking-time__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a1128;
+}
+
+/* Payment detail */
+.payment-detail__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0a1128;
+  margin: 0 0 12px 0;
+}
+.payment-detail__row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.payment-detail__label {
+  font-size: 13px;
+  color: #666;
+}
+.payment-detail__value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0a1128;
+}
+
+/* Total */
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.total-row__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0a1128;
+}
+.total-row__value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0046d5;
+}
+
+/* Buttons */
+.booking-card__actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn--primary {
+  background: #0046d5;
+  color: #fff;
+}
+.btn--primary:hover:not(:disabled) { background: #003ab5; }
+.btn--outline {
+  background: #fff;
+  color: #0046d5;
+  border: 2px solid #0046d5;
+}
+.btn--outline:hover:not(:disabled) { background: #f0f5ff; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .payment-layout { grid-template-columns: 1fr; }
+  .payment-page { padding: 20px; }
+  .booking-card { position: static; }
+}
+.payment-option__brand {
+  width: 28px;
+  height: 28px;
+  background: #A50034;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}

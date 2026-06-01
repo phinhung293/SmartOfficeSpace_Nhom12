@@ -141,7 +141,7 @@ export default function Booking() {
             return;
         }
 
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
         if (!token) {
             // Lưu trang hiện tại để tự quay lại sau khi login thành công
             sessionStorage.setItem("redirectAfterLogin", `/booking/${roomId}`);
