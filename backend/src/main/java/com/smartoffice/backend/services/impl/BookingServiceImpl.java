@@ -311,4 +311,38 @@ public class BookingServiceImpl implements BookingService {
                 .filter(a -> a != null)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
+    @Override
+    public BookingResponse getMyBookingById(Integer bookingId, Integer userId) {
+
+        Booking booking = bookingRepository
+                .findByBookingIdAndUser_UserId(bookingId, userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+
+        return toResponse(booking);
+    }
+    @Override
+    @Transactional
+    public BookingResponse cancelMyBooking(Integer bookingId, Integer userId) {
+
+        Booking booking = bookingRepository
+                .findByBookingIdAndUser_UserId(bookingId, userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+
+        String status = booking.getBookingStatus().getStatusName();
+
+        if ("CANCELLED".equals(status)) {
+            throw new RuntimeException("Booking đã bị hủy.");
+        }
+
+        if ("COMPLETED".equals(status)) {
+            throw new RuntimeException("Không thể hủy booking đã hoàn thành.");
+        }
+
+        booking.setBookingStatus(getStatus("CANCELLED"));
+        booking.setLockedUntil(null);
+
+        bookingRepository.save(booking);
+
+        return toResponse(booking);
+    }
 }
