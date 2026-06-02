@@ -8,10 +8,10 @@ import axiosInstance from '../api/axiosInstance';
 import AdminPayment from './AdminPayment';
 // Import thêm component quản lý người dùng từ nhánh develop
 import UserManagement from './UserManagement';
-
+import ReportPage from './ReportPage';
+import './css/Report.css';
 
 const vnd = (n) => Number(n || 0).toLocaleString('vi-VN');
-
 // ── Trạng thái booking ─────────────────────────────────────────────────────
 const STATUS_MAP = {
     PENDING_PAYMENT: { label: 'Chờ thanh toán', color: '#b45309', bg: '#fef3c7' },
@@ -150,6 +150,8 @@ const AdminDashboard = () => {
                 {/* Thanh toán & Hóa đơn */}
                 {activeMenu === 'thanh-toan' && <AdminPayment />}
 
+                {/*Thống kê*/}
+                {activeMenu === 'thong-ke' && <ReportPage/>}
             </main>
         </div>
     );

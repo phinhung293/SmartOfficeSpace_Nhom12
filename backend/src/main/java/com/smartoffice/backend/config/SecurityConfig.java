@@ -49,6 +49,7 @@ public class SecurityConfig {
 
                         // Giữ hasAuthority("ADMIN") của develop để khớp với DB (không bị lỗi ROLE_ prefix)
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/reports/**").hasAuthority("ADMIN")
 
                         // Tất cả endpoint còn lại (ví dụ: tạo booking, chỉnh sửa profile...) bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
