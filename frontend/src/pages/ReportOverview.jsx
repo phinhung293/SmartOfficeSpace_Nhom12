@@ -7,6 +7,7 @@ import {
     getRevenueByMonth,
     getRevenueByYear,
 } from "../api/reportApi";
+import { adminGetAllBookings } from "../api/bookingApi";
 
 // ─────────────────────────────────────────────
 //  Helpers
@@ -107,19 +108,22 @@ export default function ReportOverview() {
     const [dayData,   setDayData]   = useState([]);
     const [monthData, setMonthData] = useState([]);
     const [yearData,  setYearData]  = useState([]);
+    const [recentBookings, setRecentBookings] = useState([]);
     const [loading,   setLoading]   = useState(true);
 
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const [r1, r2, r3] = await Promise.all([
+            const [r1, r2, r3, r4] = await Promise.all([
                 getRevenueByDay(monthsAgo(1), today()),
                 getRevenueByMonth(monthsAgo(6), today()),
                 getRevenueByYear(yearsAgo(5), today()),
+                adminGetAllBookings({ page: 0, size: 5, sort: "createdAt,desc" })
             ]);
             setDayData(r1.data?.data?.details   || []);
             setMonthData(r2.data?.data?.details || []);
             setYearData(r3.data?.data?.details  || []);
+            setRecentBookings(r4?.content || r4 || []);
         } catch (err) {
             console.error("Overview load error:", err);
         } finally {
@@ -175,11 +179,31 @@ export default function ReportOverview() {
                         </tr>
                         </thead>
                         <tbody>
-                        <tr>
-                            <td colSpan={7} style={{ padding: "32px", color: "#9ca3af", fontSize: 13 }}>
-                                ← Kết nối API <code>/api/bookings?limit=10&sort=createdAt,desc</code> để hiển thị dữ liệu thực
-                            </td>
-                        </tr>
+                        {loading ? (
+                            <tr><td colSpan={7}><div className="report-loading"><div className="report-spinner" /></div></td></tr>
+                        ) : recentBookings.length === 0 ? (
+                            <tr><td colSpan={7} className="report-empty">Không có dữ liệu</td></tr>
+                        ) : (
+                            recentBookings.map((b, i) => {
+                                const st = b.bookingStatus?.statusName || b.status || "PENDING";
+                                const statusInfo = STATUS_MAP[st] || { label: st, cls: "" };
+                                return (
+                                    <tr key={b.bookingId || i}>
+                                        <td style={{ color: "#2563eb", fontWeight: 500 }}>{b.bookingCode || "—"}</td>
+                                        <td>{b.user?.fullName || b.userName || "—"}</td>
+                                        <td>{b.room?.name || b.roomName || "—"}</td>
+                                        <td>{b.createdAt ? new Date(b.createdAt).toLocaleDateString("vi-VN") : "—"}</td>
+                                        <td>{b.startTime ? new Date(b.startTime).toLocaleDateString("vi-VN") : "—"}</td>
+                                        <td><strong>{Number(b.totalAmount || 0).toLocaleString("vi-VN")}đ</strong></td>
+                                        <td>
+                                            <span className={`report-badge ${statusInfo.cls}`}>
+                                                {statusInfo.label}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
                         </tbody>
                     </table>
                 </div>

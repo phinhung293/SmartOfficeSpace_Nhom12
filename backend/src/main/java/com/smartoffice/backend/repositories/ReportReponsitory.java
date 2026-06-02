@@ -21,11 +21,12 @@ public interface ReportReponsitory extends JpaRepository<Booking, Integer> {
     // ─────────────────────────────────────────────
     @Query(value = """
             SELECT DATE_FORMAT(b.StartTime, '%d/%m/%Y') AS period,
-                   COALESCE(SUM(i.Total), 0)            AS totalRevenue,
+                   COALESCE(SUM(b.TotalAmount), 0)      AS totalRevenue,
                    COUNT(b.BookingID)                   AS bookingCount
             FROM bookings b
-            LEFT JOIN invoices i ON i.BookingID = b.BookingID
+            JOIN bookingstatus bs ON bs.StatusID = b.StatusID
             WHERE b.StartTime BETWEEN :fromDate AND :toDate
+              AND bs.StatusName = 'COMPLETED'
             GROUP BY DATE_FORMAT(b.StartTime, '%d/%m/%Y'), DATE(b.StartTime)
             ORDER BY DATE(b.StartTime)
             """, nativeQuery = true)
@@ -37,11 +38,12 @@ public interface ReportReponsitory extends JpaRepository<Booking, Integer> {
     // ─────────────────────────────────────────────
     @Query(value = """
             SELECT DATE_FORMAT(b.StartTime, '%m/%Y')   AS period,
-                   COALESCE(SUM(i.Total), 0)           AS totalRevenue,
+                   COALESCE(SUM(b.TotalAmount), 0)     AS totalRevenue,
                    COUNT(b.BookingID)                  AS bookingCount
             FROM bookings b
-            LEFT JOIN invoices i ON i.BookingID = b.BookingID
+            JOIN bookingstatus bs ON bs.StatusID = b.StatusID
             WHERE b.StartTime BETWEEN :fromDate AND :toDate
+              AND bs.StatusName = 'COMPLETED'
             GROUP BY DATE_FORMAT(b.StartTime, '%m/%Y'), YEAR(b.StartTime), MONTH(b.StartTime)
             ORDER BY YEAR(b.StartTime), MONTH(b.StartTime)
             """, nativeQuery = true)
@@ -53,11 +55,12 @@ public interface ReportReponsitory extends JpaRepository<Booking, Integer> {
     // ─────────────────────────────────────────────
     @Query(value = """
             SELECT YEAR(b.StartTime)                   AS period,
-                   COALESCE(SUM(i.Total), 0)           AS totalRevenue,
+                   COALESCE(SUM(b.TotalAmount), 0)     AS totalRevenue,
                    COUNT(b.BookingID)                  AS bookingCount
             FROM bookings b
-            LEFT JOIN invoices i ON i.BookingID = b.BookingID
+            JOIN bookingstatus bs ON bs.StatusID = b.StatusID
             WHERE b.StartTime BETWEEN :fromDate AND :toDate
+              AND bs.StatusName = 'COMPLETED'
             GROUP BY YEAR(b.StartTime)
             ORDER BY YEAR(b.StartTime)
             """, nativeQuery = true)
@@ -130,10 +133,11 @@ public interface ReportReponsitory extends JpaRepository<Booking, Integer> {
     @Query(value = """
             SELECT DATE_FORMAT(b.StartTime, '%d/%m/%Y') AS period,
                    COUNT(b.BookingID)                   AS bookingCount,
-                   COALESCE(SUM(i.Total), 0)            AS totalRevenue
+                   COALESCE(SUM(b.TotalAmount), 0)      AS totalRevenue
             FROM bookings b
-            LEFT JOIN invoices i ON i.BookingID = b.BookingID
+            JOIN bookingstatus bs ON bs.StatusID = b.StatusID
             WHERE b.StartTime BETWEEN :fromDate AND :toDate
+              AND bs.StatusName = 'COMPLETED'
             GROUP BY DATE_FORMAT(b.StartTime, '%d/%m/%Y'), DATE(b.StartTime)
             ORDER BY DATE(b.StartTime)
             """, nativeQuery = true)
