@@ -1,17 +1,44 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import './css/AdminDashboard.css';
+
 import {
     adminGetAllBookings, adminCancelBooking, adminConfirmBooking, adminGetAllRooms
 } from '../api/bookingApi';
+import { getRevenueByMonth } from '../api/reportApi';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 import axiosInstance from '../api/axiosInstance';
 import AdminPayment from './AdminPayment';
 // Import thêm component quản lý người dùng từ nhánh develop
 import UserManagement from './UserManagement';
-
+import ReportPage from './ReportPage';
+import './css/Report.css';
 
 const vnd = (n) => Number(n || 0).toLocaleString('vi-VN');
 
+const formatVNDChart = (v) => {
+    if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + "T";
+    if (v >= 1_000_000)     return (v / 1_000_000).toFixed(0) + "M";
+    if (v >= 1_000)         return (v / 1_000).toFixed(0) + "K";
+    return v;
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div style={{
+            background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
+            padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        }}>
+            <div style={{ fontWeight: 700, marginBottom: 4, color: "#1a2e44" }}>{label}</div>
+            <div style={{ color: "#3b82f6" }}>
+                Doanh thu: {Number(payload[0].value).toLocaleString("vi-VN")} đ
+            </div>
+        </div>
+    );
+};
 // ── Trạng thái booking ─────────────────────────────────────────────────────
 const STATUS_MAP = {
     PENDING_PAYMENT: { label: 'Chờ thanh toán', color: '#b45309', bg: '#fef3c7' },
@@ -150,6 +177,8 @@ const AdminDashboard = () => {
                 {/* Thanh toán & Hóa đơn */}
                 {activeMenu === 'thanh-toan' && <AdminPayment />}
 
+                {/*Thống kê*/}
+                {activeMenu === 'thong-ke' && <ReportPage/>}
             </main>
         </div>
     );
@@ -166,11 +195,13 @@ function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
     const [phongHienTai, setPhongHienTai] = useState([]);
     const [notifSummary, setNotifSummary] = useState(null);   // ← MỚI
     const [activeTab, setActiveTab]       = useState('important'); // ← MỚI: 'important' | 'general'
+    const [monthData, setMonthData]       = useState([]);
 
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingDon, setLoadingDon]     = useState(true);
     const [loadingPhong, setLoadingPhong] = useState(true);
     const [loadingNotif, setLoadingNotif] = useState(true);   // ← MỚI
+    const [loadingMonth, setLoadingMonth] = useState(true);
 
     useEffect(() => {
         axiosInstance.get('/admin/dashboard/tong-quan')
@@ -193,6 +224,21 @@ function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
             .then(r => setNotifSummary(r.data.data))
             .catch(() => setNotifSummary(null))
             .finally(() => setLoadingNotif(false));
+
+        const today = new Date().toISOString().split("T")[0];
+        const monthsAgo = (n) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - n);
+            return d.toISOString().split("T")[0];
+        };
+        getRevenueByMonth(monthsAgo(4), today)
+            .then(r => {
+                let data = r.data?.data?.details || [];
+                if (data.length > 4) data = data.slice(-4);
+                setMonthData(data);
+            })
+            .catch(() => setMonthData([]))
+            .finally(() => setLoadingMonth(false));
     }, []);
 
     const doanhThu = stats?.doanhThuHomNay
@@ -435,16 +481,34 @@ function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
                         </div>
                         <div className="chart-legend"><span className="legend-dot"></span> Doanh thu</div>
                     </div>
-                    <div className="mock-chart-container">
-                        <div className="chart-y-axis">
-                            <span>12Mđ</span><span>9Mđ</span><span>6Mđ</span><span>3Mđ</span><span>0đ</span>
-                        </div>
-                        <div className="chart-bars-area">
-                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '55%' }}></div><span className="bar-label">Tháng 2</span></div>
-                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '68%' }}></div><span className="bar-label">Tháng 3</span></div>
-                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '48%' }}></div><span className="bar-label">Tháng 4</span></div>
-                            <div className="chart-bar-wrapper"><div className="actual-bar" style={{ height: '90%' }}></div><span className="bar-label">Tháng 5</span></div>
-                        </div>
+                    <div style={{ padding: '0 10px 10px 10px', height: 260 }}>
+                        {loadingMonth ? (
+                            <div style={{ textAlign: 'center', padding: '80px 0', color: '#94a3b8' }}>
+                                <i className="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        ) : monthData.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '80px 0', color: '#94a3b8', fontSize: 13 }}>Không có dữ liệu</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={monthData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                    <XAxis
+                                        dataKey="period"
+                                        tick={{ fontSize: 11, fill: '#64748b' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        tickFormatter={formatVNDChart}
+                                        tick={{ fontSize: 11, fill: '#64748b' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                                    <Bar dataKey="totalRevenue" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>
