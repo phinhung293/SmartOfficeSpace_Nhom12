@@ -98,8 +98,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     @Query("""
         UPDATE Booking b
         SET b.bookingStatus = :expiredStatus
-        WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT'
-          AND b.lockedUntil < :now
+        WHERE b.lockedUntil < :now
+          AND b.bookingStatus IN (
+              SELECT bs FROM BookingStatus bs WHERE bs.statusName = 'PENDING_PAYMENT'
+          )
     """)
     int expireStaleBookings(
             @Param("now") LocalDateTime now,
