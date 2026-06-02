@@ -99,6 +99,7 @@ const STATUS_MAP = {
     CANCELLED:  { label: "Đã hủy",      cls: "unavailable" },
     COMPLETED:  { label: "Hoàn thành",  cls: "available" },
     WAITING_PAYMENT: { label: "Chờ thanh toán", cls: "maintenance" },
+    EXPIRED:    { label: "Hết hạn",     cls: "unavailable" },
 };
 
 // ─────────────────────────────────────────────
