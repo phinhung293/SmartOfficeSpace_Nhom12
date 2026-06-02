@@ -125,15 +125,15 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     /* ─── Admin dashboard: đếm booking hôm nay ─── */
     @Query("""
         SELECT COUNT(b) FROM Booking b
-        WHERE b.startTime >= :dayStart AND b.startTime < :dayEnd
+        WHERE b.createdAt >= :dayStart AND b.createdAt < :dayEnd
     """)
     long countTodayBookings(@Param("dayStart") LocalDateTime dayStart, @Param("dayEnd") LocalDateTime dayEnd);
 
-    /* ─── Admin dashboard: doanh thu booking CONFIRMED hôm nay ─── */
+    /* ─── Admin dashboard: doanh thu booking CONFIRMED/COMPLETED hôm nay ─── */
     @Query("""
         SELECT SUM(b.totalAmount) FROM Booking b
-        WHERE b.bookingStatus.statusName = 'CONFIRMED'
-          AND b.startTime >= :dayStart AND b.startTime < :dayEnd
+        WHERE b.bookingStatus.statusName IN ('CONFIRMED', 'COMPLETED')
+          AND b.createdAt >= :dayStart AND b.createdAt < :dayEnd
     """)
     Optional<java.math.BigDecimal> sumConfirmedAmountToday(
             @Param("dayStart") LocalDateTime dayStart,
