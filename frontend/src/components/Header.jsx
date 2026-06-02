@@ -104,7 +104,7 @@ const Header = () => {
                                         {role === 'ADMIN' ? (
                                             /* KHI LÀ ADMIN XỔ XUỐNG: CHỈ CÓ CÁ NHÂN & ĐĂNG XUẤT */
                                             <>
-                                                <div className="dropdown-item" onClick={() => { navigate('/profile'); setIsDropdownOpen(false); }}>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/info'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-id-card"></i> Thông tin cá nhân
                                                 </div>
                                                 <div className="dropdown-divider"></div>
@@ -116,13 +116,13 @@ const Header = () => {
                                             /* KHI LÀ USER THƯỜNG XỔ XUỐNG: ĐẦY ĐỦ CÁC MỤC */
                                             <>
                                                 <div className="dropdown-header-title">Tài khoản</div>
-                                                <div className="dropdown-item" onClick={() => { navigate('/profile'); setIsDropdownOpen(false); }}>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/info'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-id-card"></i> Thông tin cá nhân
                                                 </div>
                                                 <div className="dropdown-item" onClick={() => { navigate('/my-bookings'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-calendar-check"></i> Lịch sử đặt phòng
                                                 </div>
-                                                <div className="dropdown-item" onClick={() => { navigate('/invoices'); setIsDropdownOpen(false); }}>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/invoice-history'); setIsDropdownOpen(false); }}>
                                                     <i className="fa-regular fa-file-lines"></i> Lịch sử hóa đơn
                                                 </div>
                                                 <div className="dropdown-divider"></div>

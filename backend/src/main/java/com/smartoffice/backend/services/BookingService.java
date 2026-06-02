@@ -51,4 +51,10 @@ public interface BookingService {
      * Tính doanh thu hôm nay từ các đơn CONFIRMED (admin dashboard).
      */
     java.math.BigDecimal getTodayRevenue(java.time.LocalDateTime dayStart, java.time.LocalDateTime dayEnd);
+
+    BookingResponse getMyBookingById(Integer bookingId, Integer userId);
+
+    BookingResponse cancelMyBooking(Integer bookingId, Integer userId);
+
+
 }

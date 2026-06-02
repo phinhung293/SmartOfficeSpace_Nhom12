@@ -121,6 +121,9 @@ export default function Booking() {
     /* ── Tính toán chi phí đơn đặt ── */
     const hours = selectedSlots.length;
     const pricePerHour = Number(room?.price || 0);
+    console.log("ROOM =", room);
+    console.log("PRICE =", room?.price);
+    console.log("pricePerHour =", pricePerHour);
     const subtotal = hours * pricePerHour;
     const serviceFee = 0; // Phí dịch vụ xử lý gộp ở Backend
     const total = subtotal + serviceFee;
@@ -141,7 +144,7 @@ export default function Booking() {
             return;
         }
 
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
         if (!token) {
             // Lưu trang hiện tại để tự quay lại sau khi login thành công
             sessionStorage.setItem("redirectAfterLogin", `/booking/${roomId}`);
@@ -166,8 +169,14 @@ export default function Booking() {
                 endTime: tr.end + ":00",
             });
 
-            // Chuyển tiếp sang trang Payment kèm Object thông tin hóa đơn
-            navigate("/payment", { state: { booking } });
+            navigate("/payment", {
+                state: {
+                    booking: {
+                        ...booking,
+                        pricePerHour: pricePerHour
+                    }
+                }
+            });
         } catch (err) {
             const msg =
                 err.response?.data?.message ||

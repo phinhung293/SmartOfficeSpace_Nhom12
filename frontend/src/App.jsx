@@ -29,19 +29,13 @@ import Spaces         from './pages/Spaces';
 import RoomDetail     from './pages/Roomdetail';
 import Booking        from './pages/Booking';
 import Payment        from './pages/Payment';        // Trang thanh toán mới gộp từ nhánh booking
-
+import BookingSuccess from './pages/BookingSuccess';
+import BookingDetail  from './pages/BookingDetail';
 
 // Component tạm cho trang chủ
 const Home = () => <div style={{padding:'100px',textAlign:'center'}}><h2>Trang chủ (Đang phát triển)</h2></div>;
 
-// Component thông báo đặt phòng thành công
-const DefaultBookingSuccess = () => (
-    <div style={{padding:'80px',textAlign:'center'}}>
-        <i className="fa-solid fa-circle-check" style={{fontSize:64,color:'#1a7f3c',marginBottom:20,display:'block'}}></i>
-        <h2 style={{fontSize:28,color:'#1a7f3c'}}>Đặt phòng thành công!</h2>
-        <p style={{color:'#666',marginTop:12}}>Chúng tôi sẽ gửi xác nhận qua email sớm nhất.</p>
-    </div>
-);
+
 
 // Component phụ: Xử lý ẩn/hiện Header & Footer cho các trang đăng nhập/đăng ký
 const LayoutWrapper = ({ children }) => {
@@ -86,7 +80,10 @@ function App() {
                     <Route path="/spaces/:roomId"   element={<RoomDetail />} />
                     <Route path="/booking/:roomId"  element={<Booking />} />
                     <Route path="/payment"          element={<Payment />} /> {/* Gộp route thanh toán của nhánh booking */}
-                    <Route path="/booking-success"  element={<DefaultBookingSuccess />} />
+                    <Route path="/booking-success" element={<BookingSuccess />} />
+
+                    {/* CHI TIẾT ĐẶT PHÒNG – truy cập từ lịch sử hoặc sau thanh toán */}
+                    <Route path="/booking-detail/:bookingId" element={<BookingDetail />} />
 
                     {/* --- TUYẾN ĐƯỜNG THÔNG TIN --- */}
                     <Route path="/utilities" element={<Utilities />} />
@@ -103,6 +100,9 @@ function App() {
                         <Route index element={<Navigate to="info" replace />} />
                         <Route path="info"            element={<ProfileInfo />} />
                         <Route path="change-password" element={<ChangePassword />} />
+                    
+                        {/* Lịch sử hóa đơn nằm trong sidebar profile */}
+                        <Route path="invoice-history" element={<BookingHistory />} /> 
                     </Route>
 
                     {/* Lịch sử đặt phòng của riêng user (Tích hợp từ nhánh booking) */}

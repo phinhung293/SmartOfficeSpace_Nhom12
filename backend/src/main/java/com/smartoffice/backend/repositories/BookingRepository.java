@@ -143,4 +143,16 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     /* ─── Đếm số đơn theo mã ngày để sinh số thứ tự tự động tăng cho BookingCode (Ví dụ: SEED-260525-001) ─── */
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.bookingCode LIKE :prefix%")
     long countByBookingCodePrefix(@Param("prefix") String prefix);
+
+    //Thêm của phần PAYMENT
+    Optional<Booking> findByBookingCode(String bookingCode);
+
+    @Query("SELECT b FROM Booking b WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT' AND b.createdAt < :time")
+    List<Booking> findPendingPaymentOlderThan(@Param("time") LocalDateTime time);
+
+    Optional<Booking> findByBookingIdAndUser_UserId(
+            Integer bookingId,
+            Integer userId
+    );
+
 }

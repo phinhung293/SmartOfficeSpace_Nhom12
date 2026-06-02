@@ -1,0 +1,568 @@
+/* ==========================================================================
+   BookingDetail.css — khớp với hình mẫu
+   ========================================================================== */
+
+/* BREADCRUMB */
+.bd-breadcrumb {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 40px;
+}
+.bd-breadcrumb__text {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+.bd-bc-link {
+  cursor: pointer;
+  color: #64748b;
+  transition: color 0.15s;
+}
+.bd-bc-link:hover { color: #0046d5; }
+
+/* PAGE */
+.bd-page {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 30px 20px 60px;
+}
+
+/* LAYOUT */
+.bd-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ── MAIN CARD (LEFT) ──────────────────────────────────────────────────── */
+.bd-main-card {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px 30px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  min-width: 0;
+}
+
+/* Card header */
+.bd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.bd-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+.bd-booking-code-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.bd-label-muted  { color: #64748b; }
+.bd-booking-code { color: #0f172a; font-weight: 700; }
+
+.bd-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0046d5;
+  padding: 2px 3px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-size: 12px;
+  font-weight: 600;
+}
+.bd-copy-btn:hover        { background: #eff6ff; }
+.bd-copy-btn--copied      { color: #10b981; }
+
+/* Header action buttons */
+.bd-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bd-btn {
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  border: none;
+  white-space: nowrap;
+}
+.bd-btn--outline-blue {
+  background: transparent;
+  border: 1.5px solid #0046d5;
+  color: #0046d5;
+}
+.bd-btn--outline-blue:hover { background: #eff6ff; }
+.bd-btn--danger-outline {
+  background: transparent;
+  border: 1.5px solid #ef4444;
+  color: #ef4444;
+}
+.bd-btn--danger-outline:hover { background: #fff1f2; }
+.bd-btn--outline {
+  background: transparent;
+  border: 1.5px solid #cbd5e1;
+  color: #475569;
+}
+.bd-btn--outline:hover { background: #f8fafc; }
+
+/* Alert inline */
+.bd-alert-inline {
+  background: #fff1f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Status badges */
+.bd-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.bd-badge--pending   { background: #fef9c3; color: #a16207; }
+.bd-badge--confirmed { background: #dbeafe; color: #1d4ed8; }
+.bd-badge--completed { background: #dcfce7; color: #15803d; }
+.bd-badge--cancelled { background: #fee2e2; color: #b91c1c; }
+
+/* SECTION */
+.bd-section { padding: 20px 0; }
+.bd-section:first-of-type { padding-top: 0; }
+.bd-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px;
+}
+.bd-divider {
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* ROOM INFO */
+.bd-room-info {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.bd-room-img {
+  width: 150px;
+  height: 105px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.bd-room-img--placeholder {
+  background: #e2e8f0;
+}
+.bd-room-details { flex: 1; }
+.bd-room-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.bd-room-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+.bd-room-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Room meta grid */
+.bd-room-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 10px;
+  column-gap: 24px;
+}
+.bd-meta-item {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  font-size: 13.5px;
+}
+.bd-meta-item--full { grid-column: 1 / -1; }
+.bd-meta-icon  { font-size: 11px; color: #64748b; }
+.bd-meta-label { color: #64748b; flex-shrink: 0; }
+.bd-meta-value { color: #334155; }
+.bd-meta-bold  { font-weight: 600; color: #0f172a; }
+
+/* TIME */
+.bd-time-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.bd-time-item { display: flex; flex-direction: column; gap: 6px; }
+.bd-time-label {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+.bd-time-value { font-size: 14px; font-weight: 600; color: #0f172a; }
+
+/* INFO TABLE (customer & payment) */
+.bd-info-grid    { display: flex; flex-direction: column; gap: 14px; }
+.bd-info-row     { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+.bd-info-label   { color: #64748b; min-width: 180px; }
+.bd-info-value   { color: #334155; font-weight: 500; text-align: right; }
+.bd-txn-row      { display: flex; align-items: center; gap: 6px; }
+
+/* Payment status badge */
+.bd-pay-badge {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bd-pay--paid   { color: #16a34a; }
+.bd-pay--unpaid { color: #dc2626; }
+.bd-pay--pending { color: #d97706; }
+
+/* ── SUMMARY CARD (RIGHT) ──────────────────────────────────────────────── */
+.bd-summary-card {
+  width: 310px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 22px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 90px;
+}
+.bd-summary-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 20px;
+}
+.bd-summary-rows { display: flex; flex-direction: column; gap: 14px; }
+.bd-summary-row  { display: flex; justify-content: space-between; font-size: 14px; }
+.bd-summary-label { color: #64748b; }
+.bd-summary-value { color: #334155; font-weight: 500; }
+.bd-summary-free  { color: #16a34a; font-weight: 600; }
+.bd-summary-divider { height: 1px; background: #e2e8f0; margin: 20px 0; }
+.bd-summary-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bd-summary-total-label { font-size: 15px; font-weight: 700; color: #0f172a; }
+.bd-summary-total-value { font-size: 18px; font-weight: 800; color: #0046d5; }
+
+/* ── LOADING & ERROR ───────────────────────────────────────────────────── */
+.bd-loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 20px;
+  color: #64748b;
+  font-size: 14px;
+}
+.bd-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0046d5;
+  border-radius: 50%;
+  animation: bdSpin 0.7s linear infinite;
+}
+@keyframes bdSpin { to { transform: rotate(360deg); } }
+.bd-error-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 80px 20px;
+}
+.bd-error-msg { font-size: 15px; color: #ef4444; }
+
+/* ── OVERLAY & MODAL ───────────────────────────────────────────────────── */
+.bd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.bd-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 30px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+}
+.bd-modal__title { font-size: 17px; font-weight: 700; color: #0f172a; margin: 0 0 10px; }
+.bd-modal__text  { font-size: 14px; color: #475569; margin: 0 0 20px; line-height: 1.6; }
+.bd-modal__actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── RESPONSIVE ────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .bd-layout      { flex-direction: column; }
+  .bd-summary-card { width: 100%; position: static; }
+  .bd-time-grid   { grid-template-columns: 1fr; }
+  .bd-room-meta-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .bd-breadcrumb  { padding: 10px 16px; }
+  .bd-page        { padding: 20px 12px 40px; }
+  .bd-main-card   { padding: 20px 16px; }
+  .bd-card-header { flex-direction: column; }
+  .bd-room-info   { flex-direction: column; }
+  .bd-room-img    { width: 100%; height: 160px; }
+  .bd-info-row    { flex-direction: column; gap: 2px; align-items: flex-start; }
+  .bd-info-value  { text-align: left; }
+}
+
+/* ==========================================================================
+   Modal xác nhận hủy đặt phòng - Style mới đẹp hơn
+   ========================================================================== */
+
+/* Modal overlay */
+.bd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal container */
+.bd-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal header với icon cảnh báo */
+.bd-modal-header {
+  padding: 24px 24px 0 24px;
+  text-align: center;
+}
+
+.bd-modal-icon {
+  width: 70px;
+  height: 70px;
+  background: #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.bd-modal-icon i {
+  font-size: 32px;
+  color: #ef4444;
+}
+
+.bd-modal__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.bd-modal__text {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+  padding: 0 24px;
+}
+
+/* Thông tin booking trong modal */
+.bd-modal-booking-info {
+  background: #f8fafc;
+  margin: 20px 24px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.bd-modal-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.bd-modal-info-row:not(:last-child) {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bd-modal-info-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.bd-modal-info-value {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.bd-modal-info-value.amount {
+  color: #ef4444;
+  font-size: 16px;
+}
+
+/* Modal actions - nút bấm */
+.bd-modal__actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafbfc;
+}
+
+/* Nút hủy (cancel action) */
+.bd-modal__actions .bd-btn--danger-outline {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid #ef4444;
+  color: #ef4444;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bd-modal__actions .bd-btn--danger-outline:hover:not(:disabled) {
+  background: #ef4444;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.bd-modal__actions .bd-btn--danger-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Nút giữ lại (keep) */
+.bd-modal__actions .bd-btn--outline-blue {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid #0046d5;
+  color: #0046d5;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bd-modal__actions .bd-btn--outline-blue:hover {
+  background: #0046d5;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 70, 213, 0.3);
+}
+
+/* Responsive cho modal */
+@media (max-width: 480px) {
+  .bd-modal {
+    width: 95%;
+    margin: 16px;
+  }
+  
+  .bd-modal-booking-info {
+    margin: 16px;
+    padding: 12px;
+  }
+  
+  .bd-modal__actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+    padding: 16px;
+  }
+  
+  .bd-modal__actions .bd-btn--danger-outline,
+  .bd-modal__actions .bd-btn--outline-blue {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .bd-modal-icon {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .bd-modal-icon i {
+    font-size: 26px;
+  }
+  
+  .bd-modal__title {
+    font-size: 18px;
+  }
+}
+/* Payment status badges - mở rộng */
+.bd-pay--paid { color: #16a34a; background: #dcfce7; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+.bd-pay--unpaid { color: #dc2626; background: #fee2e2; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+.bd-pay--pending { color: #d97706; background: #fef3c7; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+.bd-pay--cancelled { color: #6b7280; background: #f3f4f6; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+.bd-pay--refunded { color: #8b5cf6; background: #ede9fe; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+.bd-pay--expired { color: #94a3b8; background: #f1f5f9; padding: 4px 12px; border-radius: 20px; display: inline-block; }
