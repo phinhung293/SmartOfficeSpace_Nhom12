@@ -50,7 +50,8 @@ export default function Payment() {
   }
 
   const duration = booking.durationHours ||
-      Math.ceil((new Date(booking.endTime) - new Date(booking.startTime)) / (1000 * 60 * 60));
+    Math.ceil((new Date(booking.endTime) - new Date(booking.startTime)) / (1000 * 60 * 60));
+
   const unitPrice = booking.pricePerHour || 0;
   const serviceFee = Math.round(booking.totalAmount * 0.05);
   const totalAmount = booking.totalAmount + serviceFee;
@@ -82,7 +83,7 @@ export default function Payment() {
     setError('');
     try {
       await confirmPayment(booking.bookingId);
-      // 👇 Truyền đủ thông tin sang BookingSuccess
+      // Truyền đủ thông tin sang BookingSuccess
       navigate('/booking-success', {
         state: {
           bookingId: booking.bookingId,
@@ -139,7 +140,8 @@ export default function Payment() {
                         </div>
                         <div className="qr-instructions">
                           <p className="qr-instructions__text">Sử dụng ứng dụng ngân hàng hoặc ví điện tử quét mã QR để thanh toán.</p>
-                          {!qrExpired ? (<p className="qr-instructions__timer">Thời gian còn lại: <Countdown seconds={598} onExpire={() => setQrExpired(true)} /></p>
+                          {!qrExpired ? (
+                              <p className="qr-instructions__timer">Thời gian còn lại: <Countdown seconds={598} onExpire={() => setQrExpired(true)} /></p>
                           ) : (
                               <div>
                                 <p style={{ fontSize: 13, color: '#dc3545' }}>Mã QR đã hết hạn</p>
