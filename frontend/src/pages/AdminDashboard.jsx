@@ -29,6 +29,16 @@ const ROOM_STATUS_COLOR = {
     'Bảo trì':         { color: '#b45309', bg: '#fef3c7' },
 };
 
+// ── Icon & màu theo type thông báo ─────────────────────────────────────────
+const NOTIFY_TYPE_CONFIG = {
+    PAYMENT:      { icon: 'fa-credit-card',   color: '#3b82f6', label: 'Thanh toán' },
+    CANCELLATION: { icon: 'fa-circle-xmark',  color: '#ef4444', label: 'Hủy phòng'  },
+    REMINDER:     { icon: 'fa-bell',          color: '#f97316', label: 'Nhắc lịch'  },
+    BOOKING:      { icon: 'fa-circle-check',  color: '#22c55e', label: 'Đặt phòng'  },
+    SYSTEM:       { icon: 'fa-circle-info',   color: '#6b7280', label: 'Hệ thống'   },
+    PROMOTION:    { icon: 'fa-tag',           color: '#a855f7', label: 'Khuyến mãi' },
+};
+
 const fmtTime = (dt) => {
     if (!dt) return '—';
     return new Date(dt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -36,6 +46,13 @@ const fmtTime = (dt) => {
 const fmtDate = (dt) => {
     if (!dt) return '—';
     return new Date(dt).toLocaleDateString('vi-VN');
+};
+const fmtDateTime = (dt) => {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
 };
 
 const StatusBadge = ({ status }) => {
@@ -144,12 +161,16 @@ export default AdminDashboard;
    TỔNG QUAN DASHBOARD — kết nối API thật từ nhánh booking
 ══════════════════════════════════════════════════════════════ */
 function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
-    const [stats, setStats]         = useState(null);
-    const [donHomNay, setDonHomNay] = useState([]);
+    const [stats, setStats]               = useState(null);
+    const [donHomNay, setDonHomNay]       = useState([]);
     const [phongHienTai, setPhongHienTai] = useState([]);
-    const [loadingStats, setLoadingStats]   = useState(true);
-    const [loadingDon, setLoadingDon]       = useState(true);
-    const [loadingPhong, setLoadingPhong]   = useState(true);
+    const [notifSummary, setNotifSummary] = useState(null);   // ← MỚI
+    const [activeTab, setActiveTab]       = useState('important'); // ← MỚI: 'important' | 'general'
+
+    const [loadingStats, setLoadingStats] = useState(true);
+    const [loadingDon, setLoadingDon]     = useState(true);
+    const [loadingPhong, setLoadingPhong] = useState(true);
+    const [loadingNotif, setLoadingNotif] = useState(true);   // ← MỚI
 
     useEffect(() => {
         axiosInstance.get('/admin/dashboard/tong-quan')
@@ -166,11 +187,26 @@ function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
             .then(r => setPhongHienTai(r.data.data || []))
             .catch(() => setPhongHienTai([]))
             .finally(() => setLoadingPhong(false));
+
+        // ── MỚI: Lấy summary thông báo ──────────────────────────────────
+        axiosInstance.get('/admin/notifications/summary')
+            .then(r => setNotifSummary(r.data.data))
+            .catch(() => setNotifSummary(null))
+            .finally(() => setLoadingNotif(false));
     }, []);
 
     const doanhThu = stats?.doanhThuHomNay
         ? Number(stats.doanhThuHomNay).toLocaleString('vi-VN') + 'đ'
         : '0đ';
+
+    // ── Danh sách hiển thị theo tab đang chọn ───────────────────────────
+    const notifList = activeTab === 'important'
+        ? (notifSummary?.importantNotifications || [])
+        : (notifSummary?.generalNotifications   || []);
+
+    // ── Số badge cho mỗi tab ────────────────────────────────────────────
+    const importantCount = (notifSummary?.importantNotifications || []).filter(n => n.isRead === 0).length;
+    const generalCount   = (notifSummary?.generalNotifications   || []).filter(n => n.isRead === 0).length;
 
     return (
         <div className="dashboard-view-container">
@@ -206,25 +242,102 @@ function TongQuan({ onGoToLichSu, onGoToDieuPhoi }) {
             </div>
 
             <div className="dashboard-row double-column">
+                {/* ── CARD THÔNG BÁO (đã thay thế hardcode) ────────────────── */}
                 <div className="dashboard-card card-half">
                     <div className="card-header-tabs">
-                        <button className="tab-btn active">Quan trọng</button>
-                        <button className="tab-btn">Thông báo</button>
+                        {/* Tab Quan trọng */}
+                        <button
+                            className={`tab-btn ${activeTab === 'important' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('important')}
+                            style={{ position: 'relative' }}
+                        >
+                            Quan trọng
+                            {importantCount > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -4, right: -8,
+                                    background: '#ef4444', color: '#fff',
+                                    borderRadius: '50%', fontSize: 10, fontWeight: 700,
+                                    minWidth: 16, height: 16, lineHeight: '16px',
+                                    textAlign: 'center', padding: '0 3px'
+                                }}>
+                                    {importantCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* Tab Thông báo */}
+                        <button
+                            className={`tab-btn ${activeTab === 'general' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('general')}
+                            style={{ position: 'relative' }}
+                        >
+                            Thông báo
+                            {generalCount > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -4, right: -8,
+                                    background: '#3b82f6', color: '#fff',
+                                    borderRadius: '50%', fontSize: 10, fontWeight: 700,
+                                    minWidth: 16, height: 16, lineHeight: '16px',
+                                    textAlign: 'center', padding: '0 3px'
+                                }}>
+                                    {generalCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
+
                     <div className="card-body-list">
-                        <div className="list-item-notify">
-                            <div className="notify-title">Bảo trì hệ thống ngày 30/05/2026</div>
-                            <div className="notify-time">25/05/2026 08:30</div>
-                        </div>
-                        <div className="list-item-notify">
-                            <div className="notify-title">Kiểm tra các đơn chờ thanh toán quá hạn</div>
-                            <div className="notify-time">25/05/2026 08:15</div>
-                        </div>
-                        <div className="list-item-notify">
-                            <div className="notify-title">Doanh thu hôm nay: {doanhThu}</div>
-                            <div className="notify-time">25/05/2026 08:05</div>
-                        </div>
-                        <span className="view-all-link">&gt;&gt;Xem tất cả</span>
+                        {/* Loading */}
+                        {loadingNotif && (
+                            <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8' }}>
+                                <i className="fa-solid fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        )}
+
+                        {/* Không có dữ liệu */}
+                        {!loadingNotif && notifList.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8', fontSize: 13 }}>
+                                Không có thông báo nào
+                            </div>
+                        )}
+
+                        {/* Danh sách thông báo */}
+                        {!loadingNotif && notifList.slice(0, 5).map(n => {
+                            const cfg = NOTIFY_TYPE_CONFIG[n.type] || NOTIFY_TYPE_CONFIG.SYSTEM;
+                            return (
+                                <div
+                                    key={n.notifyId}
+                                    className="list-item-notify"
+                                    style={{ opacity: n.isRead === 1 ? 0.75 : 1 }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                        <i
+                                            className={`fa-solid ${cfg.icon}`}
+                                            style={{ color: cfg.color, fontSize: 13, marginTop: 2, minWidth: 14 }}
+                                        ></i>
+                                        <div className="notify-title" style={{ flex: 1, fontWeight: 600, color: '#1e293b' }}>
+                                            {n.message}
+                                        </div>
+                                    </div>
+                                    <div className="notify-time" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        {n.userName && (
+                                            <span style={{ color: '#475569', fontSize: 12, fontWeight: 600 }}>
+                                                {n.userName}
+                                            </span>
+                                        )}
+                                        <span>{fmtDateTime(n.createdAt)}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        <span
+                            className="view-all-link"
+                            onClick={() => window.location.href = '/admin/notifications'}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            &gt;&gt;Xem tất cả
+                        </span>
                     </div>
                 </div>
 

@@ -1,0 +1,123 @@
+.nfd-wrapper { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+.nfd-loading  { text-align: center; padding: 80px; color: #9ca3af; font-size: 15px; }
+
+.nfd-breadcrumb { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+.nfd-breadcrumb span { cursor: pointer; }
+.nfd-breadcrumb span:hover { text-decoration: underline; }
+.nfd-breadcrumb span:last-child { cursor: default; color: #374151; }
+
+.nfd-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+
+/* Header */
+.nfd-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 24px 28px; border-bottom: 1px solid #f3f4f6;
+}
+.nfd-header-left { display: flex; gap: 16px; align-items: flex-start; }
+.nfd-icon {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.nfd-type-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #f3f4f6; border-radius: 20px;
+    padding: 4px 14px; font-size: 13px; font-weight: 600; color: #374151;
+    margin-bottom: 8px;
+}
+.nfd-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.nfd-main-msg  { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+.nfd-sub       { font-size: 13px; color: #9ca3af; margin: 0; }
+.nfd-created-at{ font-size: 13px; color: #9ca3af; white-space: nowrap; }
+
+/* Greeting */
+.nfd-greeting { padding: 20px 28px; color: #3b82f6; font-size: 14px; line-height: 1.8; border-bottom: 1px solid #f3f4f6; }
+.nfd-greeting p { margin: 0; }
+
+/* Booking card */
+.nfd-booking-card {
+    display: flex; gap: 0;
+    margin: 20px 28px;
+    border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+}
+.nfd-booking-left {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 20px; flex: 1; border-right: 1px solid #e5e7eb;
+}
+.nfd-room-img { width: 140px; height: 100px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.nfd-room-info h3 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.nfd-room-info p  { font-size: 13px; color: #6b7280; margin: 0 0 6px; display: flex; align-items: center; gap: 6px; }
+.nfd-room-btn {
+    margin-top: 10px;
+    border: 1.5px solid #3b82f6; background: white;
+    color: #3b82f6; font-size: 13px; padding: 6px 16px;
+    border-radius: 8px; cursor: pointer;
+}
+.nfd-room-btn:hover { background: #eff6ff; }
+
+.nfd-booking-right { padding: 20px; flex: 1; }
+
+/* Info rows */
+.nfd-info-row {
+    display: flex; justify-content: space-between;
+    font-size: 14px; color: #374151;
+    padding: 8px 0; border-bottom: 1px solid #f9fafb;
+}
+.nfd-breadcrumb span:last-child {
+    cursor: default;
+    color: #6b7280;
+}
+.nfd-info-row.total { border-bottom: none; font-weight: 600; }
+.nfd-val   { font-weight: 600; }
+.nfd-total { color: #3b82f6; font-size: 15px; }
+
+/* Bottom */
+.nfd-bottom {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; padding: 0 28px 28px;
+}
+@media (max-width: 768px) { .nfd-bottom { grid-template-columns: 1fr; } }
+
+.nfd-payment-card, .nfd-related-card {
+    border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px;
+}
+.nfd-payment-card h4, .nfd-related-card h4 {
+    font-size: 15px; font-weight: 700; margin: 0 0 16px; color: #111827;
+}
+
+.nfd-status.paid     { color: #22c55e; font-weight: 600; }
+.nfd-status.pending  { color: #f97316; font-weight: 600; }
+.nfd-status.refunded { color: #6b7280; font-weight: 600; }
+
+/* Related */
+.nfd-related-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+    cursor: pointer; transition: opacity 0.15s;
+}
+.nfd-related-item:last-child { border-bottom: none; }
+.nfd-related-item:hover { opacity: 0.75; }
+.nfd-related-icon {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.nfd-related-body  { flex: 1; }
+.nfd-related-label { font-size: 13px; font-weight: 600; color: #111827; margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+.nfd-related-msg   { font-size: 12px; color: #6b7280; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.nfd-related-arrow { color: #9ca3af; font-size: 13px; }
+/* Khi related đứng một mình (không có payment bên cạnh) */
+.nfd-bottom .nfd-related-card:only-child {
+    grid-column: 1 / -1;
+}
+.nfd-related-empty {
+    font-size: 13px;
+    color: #9ca3af;
+    text-align: center;
+    padding: 20px 0;
+    margin: 0;
+}
+/* Trạng thái đặt phòng trong notification detail */
+.nfd-booking-status           { font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 20px; }
+.nfd-booking-status.confirmed { background: #dcfce7; color: #16a34a; }
+.nfd-booking-status.cancelled { background: #fee2e2; color: #dc2626; }
+.nfd-booking-status.completed { background: #dbeafe; color: #1d4ed8; }
+.nfd-booking-status.pending   { background: #ffedd5; color: #ea580c; }

@@ -48,10 +48,10 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
           AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
     """)
     boolean hasOverlappingExcludeSelf(
-            @Param("roomId")           Integer roomId,
+            @Param("roomId") Integer roomId,
             @Param("excludeBookingId") Integer excludeBookingId,
-            @Param("requestedStart")   LocalDateTime requestedStart,
-            @Param("requestedEnd")     LocalDateTime requestedEnd
+            @Param("requestedStart") LocalDateTime requestedStart,
+            @Param("requestedEnd") LocalDateTime requestedEnd
     );
 
     /* ─── Lấy danh sách overlap (để hiển thị tên trong thông báo lỗi) ─── */
@@ -64,13 +64,13 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
           AND b.bookingStatus.statusName NOT IN ('CANCELLED', 'EXPIRED')
     """)
     List<Booking> findAllOverlappingExcludeSelf(
-            @Param("roomId")           Integer roomId,
+            @Param("roomId") Integer roomId,
             @Param("excludeBookingId") Integer excludeBookingId,
-            @Param("requestedStart")   LocalDateTime requestedStart,
-            @Param("requestedEnd")     LocalDateTime requestedEnd
+            @Param("requestedStart") LocalDateTime requestedStart,
+            @Param("requestedEnd") LocalDateTime requestedEnd
     );
 
-    /* ─── Kiểm tra overlap với PESSIMISTIC LOCK (dùng khi tạo booking tránh tranh chấp dữ liệu đồng thời) ─── */
+    /* ─── Kiểm tra overlap với PESSIMISTIC LOCK (dùng khi tạo booking) ─── */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT b FROM Booking b
@@ -85,7 +85,7 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
             @Param("requestedEnd") LocalDateTime requestedEnd
     );
 
-    /* ─── Realtime status (kiểm tra xem phòng có đang trong slot bận hiện tại không) ─── */
+    /* ─── Realtime status (đang trong slot hiện tại) ─── */
     boolean existsByRoom_RoomIdAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(
             Integer roomId, LocalDateTime now1, LocalDateTime now2
     );
@@ -93,22 +93,20 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
     /* ─── My Bookings (user xem lịch sử của mình) ─── */
     Page<Booking> findByUser_UserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 
-    /* ─── ĐÃ SỬA: Expire các booking PENDING_PAYMENT quá hạn mà không bị lỗi Column Ambiguous ─── */
+    /* ─── Expire các booking PENDING_PAYMENT đã hết thời gian giữ chỗ ─── */
     @Modifying
     @Query("""
         UPDATE Booking b
         SET b.bookingStatus = :expiredStatus
-        WHERE b.bookingStatus IN (
-            SELECT bs FROM BookingStatus bs WHERE bs.statusName = 'PENDING_PAYMENT'
-        )
-        AND b.lockedUntil < :now
+        WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT'
+          AND b.lockedUntil < :now
     """)
     int expireStaleBookings(
             @Param("now") LocalDateTime now,
             @Param("expiredStatus") BookingStatus expiredStatus
     );
 
-    /* ─── Lấy các slot đã booked trong ngày (để tính slot index hiển thị lên timeline ở Frontend) ─── */
+    /* ─── Lấy các slot đã booked trong ngày (để tính slot index cho FE) ─── */
     @Query("""
         SELECT b FROM Booking b
         WHERE b.room.roomId = :roomId
@@ -122,29 +120,41 @@ public interface BookingRepository extends JpaRepository<Booking, Integer>, JpaS
             @Param("dayEnd") LocalDateTime dayEnd
     );
 
-    /* ─── Admin dashboard: đếm số booking hôm nay ─── */
+    /* ─── Admin dashboard: đếm booking hôm nay ─── */
     @Query("""
         SELECT COUNT(b) FROM Booking b
         WHERE b.startTime >= :dayStart AND b.startTime < :dayEnd
     """)
     long countTodayBookings(@Param("dayStart") LocalDateTime dayStart, @Param("dayEnd") LocalDateTime dayEnd);
 
-    /* ─── Admin dashboard: tính tổng doanh thu các booking CONFIRMED hôm nay ─── */
+    /* ─── Admin dashboard: doanh thu booking CONFIRMED hôm nay ─── */
     @Query("""
         SELECT SUM(b.totalAmount) FROM Booking b
         WHERE b.bookingStatus.statusName = 'CONFIRMED'
           AND b.startTime >= :dayStart AND b.startTime < :dayEnd
     """)
-    Optional<BigDecimal> sumConfirmedAmountToday(
+    Optional<java.math.BigDecimal> sumConfirmedAmountToday(
             @Param("dayStart") LocalDateTime dayStart,
             @Param("dayEnd") LocalDateTime dayEnd
     );
 
-    /* ─── Đếm số đơn theo mã ngày để sinh số thứ tự tự động tăng cho BookingCode (Ví dụ: SEED-260525-001) ─── */
+    /* ─── Đếm theo BookingCode prefix để tạo sequence ─── */
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.bookingCode LIKE :prefix%")
     long countByBookingCodePrefix(@Param("prefix") String prefix);
 
-    //Thêm của phần PAYMENT
+    /* ─── Tìm booking CONFIRMED sắp bắt đầu trong khoảng thời gian ─── */
+    @Query("""
+    SELECT b FROM Booking b
+    WHERE b.bookingStatus.statusName = 'CONFIRMED'
+      AND b.startTime >= :from
+      AND b.startTime < :to
+""")
+    List<Booking> findUpcomingConfirmed(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    // PAYMENT
     Optional<Booking> findByBookingCode(String bookingCode);
 
     @Query("SELECT b FROM Booking b WHERE b.bookingStatus.statusName = 'PENDING_PAYMENT' AND b.createdAt < :time")
