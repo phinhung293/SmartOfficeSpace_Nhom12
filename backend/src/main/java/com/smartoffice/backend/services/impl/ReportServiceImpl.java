@@ -1,467 +1,497 @@
 package com.smartoffice.backend.services.impl;
 
 import com.smartoffice.backend.dto.report.*;
-import com.smartoffice.backend.entities.Booking;
-import com.smartoffice.backend.entities.Room;
-import com.smartoffice.backend.repositories.BookingRepository;
-import com.smartoffice.backend.repositories.RoomRepository;
+import com.smartoffice.backend.repositories.ReportReponsitory;
+import com.smartoffice.backend.repositories.ReportReponsitory;
 import com.smartoffice.backend.services.ReportService;
-import com.smartoffice.backend.services.RoomService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ReportServiceImpl implements ReportService {
 
-    private final BookingRepository bookingRepository;
-    private final RoomRepository roomRepository;
-    private final RoomService roomService;
+    private final ReportReponsitory reportRepository;
 
-    private static final int DAILY_WORKING_HOURS = 14; // From 8:00 to 22:00
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    // ═══════════════════════════════════════════════════════
+    //  REVENUE
+    // ═══════════════════════════════════════════════════════
 
     @Override
-    public RevenueReportDto getRevenueReport(String type, LocalDate from, LocalDate to) {
-        LocalDateTime start = from.atStartOfDay();
-        LocalDateTime end = to.plusDays(1).atStartOfDay();
-
-        // Get confirmed bookings in range
-        List<Booking> bookings = bookingRepository.findAll().stream()
-                .filter(b -> b.getBookingStatus().getStatusName().equals("CONFIRMED")
-                        && !b.getStartTime().isBefore(start)
-                        && b.getStartTime().isBefore(end))
-                .collect(Collectors.toList());
-
-        BigDecimal totalRevenue = bookings.stream()
-                .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Group by period
-        Map<String, List<Booking>> grouped = new HashMap<>();
-        DateTimeFormatter formatter = getFormatter(type);
-
-        bookings.forEach(b -> {
-            String period = b.getStartTime().format(formatter);
-            grouped.computeIfAbsent(period, k -> new ArrayList<>()).add(b);
-        });
-
-        // Fill empty periods
-        List<RevenueDetailDto> details = new ArrayList<>();
-        List<String> allPeriods = generatePeriods(type, from, to);
-
-        for (String period : allPeriods) {
-            List<Booking> list = grouped.getOrDefault(period, Collections.emptyList());
-            BigDecimal rev = list.stream()
-                    .map(b -> b.getTotalAmount() != null ? b.getTotalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            details.add(new RevenueDetailDto(period, list.size(), rev));
-        }
-
-        // Sort details
-        details.sort(Comparator.comparing(RevenueDetailDto::getPeriod));
-
-        return new RevenueReportDto(totalRevenue, bookings.size(), details);
+    public RevenueSummaryDTO getRevenueByDay(LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Object[]> rows = reportRepository.revenueByDay(fromDate, toDate);
+        return buildRevenueSummary(rows);
     }
 
     @Override
-    public BookingReportDto getBookingReport(LocalDate from, LocalDate to) {
-        LocalDateTime start = from.atStartOfDay();
-        LocalDateTime end = to.plusDays(1).atStartOfDay();
-
-        List<Booking> bookings = bookingRepository.findAll().stream()
-                .filter(b -> !b.getStartTime().isBefore(start) && b.getStartTime().isBefore(end))
-                .collect(Collectors.toList());
-
-        long total = bookings.size();
-        long pending = bookings.stream().filter(b -> b.getBookingStatus().getStatusName().equals("PENDING_PAYMENT")).count();
-        long confirmed = bookings.stream().filter(b -> b.getBookingStatus().getStatusName().equals("CONFIRMED")).count();
-        long cancelled = bookings.stream().filter(b -> b.getBookingStatus().getStatusName().equals("CANCELLED")).count();
-
-        // Group daily
-        Map<String, Long> grouped = bookings.stream()
-                .collect(Collectors.groupingBy(
-                        b -> b.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                        Collectors.counting()
-                ));
-
-        List<BookingDetailDto> details = new ArrayList<>();
-        List<String> allPeriods = generatePeriods("day", from, to);
-
-        for (String period : allPeriods) {
-            details.add(new BookingDetailDto(period, grouped.getOrDefault(period, 0L)));
-        }
-
-        details.sort(Comparator.comparing(BookingDetailDto::getPeriod));
-
-        return new BookingReportDto(total, pending, confirmed, cancelled, details);
+    public RevenueSummaryDTO getRevenueByMonth(LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Object[]> rows = reportRepository.revenueByMonth(fromDate, toDate);
+        return buildRevenueSummary(rows);
     }
 
     @Override
-    public OccupancyReportDto getOccupancyReport(LocalDate from, LocalDate to) {
-        List<Room> rooms = roomRepository.findAll();
-        long totalRooms = rooms.size();
+    public RevenueSummaryDTO getRevenueByYear(LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Object[]> rows = reportRepository.revenueByYear(fromDate, toDate);
+        return buildRevenueSummary(rows);
+    }
 
-        LocalDateTime start = from.atStartOfDay();
-        LocalDateTime end = to.plusDays(1).atStartOfDay();
+    private RevenueSummaryDTO buildRevenueSummary(List<Object[]> rows) {
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        long totalBookings = 0L;
+        List<RevenueReportDTO> details = new ArrayList<>();
 
-        // Total operational hours for a room in range
-        long daysCount = ChronoUnit.DAYS.between(from, to) + 1;
-        long totalOpHours = daysCount * DAILY_WORKING_HOURS;
-        if (totalOpHours <= 0) totalOpHours = DAILY_WORKING_HOURS;
+        for (Object[] row : rows) {
+            String period     = row[0] != null ? row[0].toString() : "";
+            BigDecimal rev    = row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
+            long count        = row[2] != null ? Long.parseLong(row[2].toString()) : 0L;
 
-        // Get confirmed bookings in range
-        List<Booking> bookings = bookingRepository.findAll().stream()
-                .filter(b -> b.getBookingStatus().getStatusName().equals("CONFIRMED")
-                        && !b.getStartTime().isBefore(start)
-                        && b.getStartTime().isBefore(end))
-                .collect(Collectors.toList());
+            details.add(new RevenueReportDTO(period, rev, count));
+            totalRevenue = totalRevenue.add(rev);
+            totalBookings += count;
+        }
 
-        // Count rooms that have at least one booking
-        Set<Integer> occupiedRoomIds = bookings.stream()
-                .map(b -> b.getRoom().getRoomId())
-                .collect(Collectors.toSet());
-        long occupiedRoomsCount = occupiedRoomIds.size();
+        return new RevenueSummaryDTO(totalRevenue, totalBookings, details);
+    }
 
-        BigDecimal systemOccupancyRate = totalRooms == 0 ? BigDecimal.ZERO :
-                BigDecimal.valueOf(occupiedRoomsCount)
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(BigDecimal.valueOf(totalRooms), 2, RoundingMode.HALF_UP);
+    // ═══════════════════════════════════════════════════════
+    //  BOOKING
+    // ═══════════════════════════════════════════════════════
 
-        // Map details
-        List<RoomOccupancyDetailDto> roomDetails = new ArrayList<>();
-        for (Room r : rooms) {
-            List<Booking> roomBookings = bookings.stream()
-                    .filter(b -> b.getRoom().getRoomId().equals(r.getRoomId()))
-                    .collect(Collectors.toList());
+    @Override
+    public BookingReportDTO getBookingSummary(LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Object[]> rows = reportRepository.bookingStatsByStatus(fromDate, toDate);
 
-            long bookedHours = roomBookings.stream()
-                    .mapToLong(b -> {
-                        Duration duration = Duration.between(b.getStartTime(), b.getEndTime());
-                        return Math.max(1, duration.toHours());
-                    })
-                    .sum();
+        long total = 0, pending = 0, confirmed = 0, cancelled = 0, completed = 0;
 
-            BigDecimal occRate = BigDecimal.valueOf(bookedHours)
+        for (Object[] row : rows) {
+            String status = row[0] != null ? row[0].toString().toUpperCase() : "";
+            long   cnt    = row[1] != null ? Long.parseLong(row[1].toString()) : 0L;
+            total += cnt;
+            switch (status) {
+                case "PENDING"   -> pending   += cnt;
+                case "CONFIRMED" -> confirmed += cnt;
+                case "CANCELLED" -> cancelled += cnt;
+                case "COMPLETED" -> completed += cnt;
+            }
+        }
+
+        return new BookingReportDTO(total, pending, confirmed, cancelled, completed);
+    }
+
+    @Override
+    public List<BookingStatDTO> getBookingStatsByDay(LocalDateTime fromDate, LocalDateTime toDate) {
+        List<Object[]> rows = reportRepository.bookingStatsByDay(fromDate, toDate);
+        List<BookingStatDTO> result = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            String period    = row[0] != null ? row[0].toString() : "";
+            long   total     = row[1] != null ? Long.parseLong(row[1].toString()) : 0L;
+            long   confirmed = row[2] != null ? Long.parseLong(row[2].toString()) : 0L;
+            long   cancelled = row[3] != null ? Long.parseLong(row[3].toString()) : 0L;
+            long   pending   = row[4] != null ? Long.parseLong(row[4].toString()) : 0L;
+            result.add(new BookingStatDTO(period, total, confirmed, cancelled, pending));
+        }
+
+        return result;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  OCCUPANCY
+    // ═══════════════════════════════════════════════════════
+
+    @Override
+    public OccupancyReportDTO getOccupancyReport(LocalDateTime fromDate, LocalDateTime toDate) {
+        Long totalRooms = reportRepository.countTotalRooms();
+        List<Object[]> rows = reportRepository.occupancyByRoom(fromDate, toDate);
+
+        List<RoomOccupancyDTO> roomDetails = new ArrayList<>();
+        int occupiedCount = 0;
+
+        // Tính số ngày trong khoảng (để tính occupancy rate mỗi phòng)
+        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(fromDate, toDate);
+        if (totalDays == 0) totalDays = 1;
+
+        for (Object[] row : rows) {
+            Integer roomId      = row[0] != null ? Integer.parseInt(row[0].toString()) : 0;
+            String  roomName    = row[1] != null ? row[1].toString() : "";
+            String  roomType    = row[2] != null ? row[2].toString() : "";
+            String  roomStatus  = row[3] != null ? row[3].toString() : "";
+            long    bookCount   = row[4] != null ? Long.parseLong(row[4].toString()) : 0L;
+
+            // Occupancy rate của từng phòng = bookingCount / totalDays * 100
+            BigDecimal rate = BigDecimal.valueOf(bookCount)
+                    .divide(BigDecimal.valueOf(totalDays), 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100))
-                    .divide(BigDecimal.valueOf(totalOpHours), 1, RoundingMode.HALF_UP);
-            if (occRate.compareTo(BigDecimal.valueOf(100)) > 0) {
-                occRate = BigDecimal.valueOf(100);
-            }
+                    .min(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
 
-            // Realtime status
-            String realtimeStatus = "AVAILABLE";
-            String rts = roomService.getRealtimeStatus(r.getRoomId());
-            if ("Đang bận".equalsIgnoreCase(rts)) realtimeStatus = "OCCUPIED";
-            else if ("Bảo trì".equalsIgnoreCase(rts)) realtimeStatus = "MAINTENANCE";
+            if (bookCount > 0) occupiedCount++;
 
-            roomDetails.add(new RoomOccupancyDetailDto(
-                    r.getRoomId(),
-                    r.getName(),
-                    r.getWorkspaceType() != null ? r.getWorkspaceType().getTypeName() : "N/A",
-                    roomBookings.size(),
-                    occRate,
-                    realtimeStatus
-            ));
+            roomDetails.add(new RoomOccupancyDTO(roomId, roomName, roomType, bookCount, rate, roomStatus));
         }
 
-        // Sort descending by bookingCount
-        roomDetails.sort((a, b) -> Long.compare(b.getBookingCount(), a.getBookingCount()));
+        long total = totalRooms != null ? totalRooms : 0L;
+        BigDecimal overallRate = total > 0
+                ? BigDecimal.valueOf(occupiedCount)
+                .divide(BigDecimal.valueOf(total), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
-        return new OccupancyReportDto(totalRooms, occupiedRoomsCount, systemOccupancyRate, roomDetails);
+        return new OccupancyReportDTO((int) total, occupiedCount, overallRate, roomDetails);
     }
 
-    // Excel exports
+    // ═══════════════════════════════════════════════════════
+    //  EXPORT EXCEL — helpers
+    // ═══════════════════════════════════════════════════════
+
+    /** Tạo CellStyle cho tiêu đề (header) */
+    private CellStyle createHeaderStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        Font font = wb.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 11);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.ROYAL_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        return style;
+    }
+
+    /** Tạo CellStyle cho title report */
+    private CellStyle createTitleStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        Font font = wb.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 14);
+        font.setColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        return style;
+    }
+
+    /** Tạo CellStyle cho data row thường */
+    private CellStyle createDataStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        return style;
+    }
+
+    /** Tạo CellStyle cho data row số tiền */
+    private CellStyle createMoneyStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        DataFormat df = wb.createDataFormat();
+        style.setDataFormat(df.getFormat("#,##0"));
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setAlignment(HorizontalAlignment.RIGHT);
+        return style;
+    }
+
+    /** Tạo CellStyle cho total row */
+    private CellStyle createTotalStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        Font font = wb.createFont();
+        font.setBold(true);
+        font.setColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        DataFormat df = wb.createDataFormat();
+        style.setDataFormat(df.getFormat("#,##0"));
+        style.setBorderBottom(BorderStyle.MEDIUM);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setAlignment(HorizontalAlignment.RIGHT);
+        return style;
+    }
+
+    private void autoSizeColumns(Sheet sheet, int numCols) {
+        for (int i = 0; i < numCols; i++) {
+            sheet.autoSizeColumn(i);
+            // add a bit of padding
+            sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1024);
+        }
+    }
+
+    private void setResponseHeaders(HttpServletResponse response, String filename) {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=\"" + filename + "\"");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    }
+
+    // ─────────────────────────────────────────────
+    // Export Revenue
+    // ─────────────────────────────────────────────
     @Override
-    public byte[] exportRevenueExcel(LocalDate from, LocalDate to) {
-        RevenueReportDto report = getRevenueReport("day", from, to);
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Doanh Thu");
-            sheet.setDisplayGridlines(true);
+    public void exportRevenueExcel(LocalDateTime fromDate, LocalDateTime toDate,
+                                   HttpServletResponse response) throws IOException {
+        RevenueSummaryDTO summary = getRevenueByDay(fromDate, toDate);
+        String filename = "BaoCaoDoanhThu_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
+        setResponseHeaders(response, filename);
 
-            // Style Title
-            Row titleRow = sheet.createRow(0);
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Doanh Thu");
+            sheet.setDefaultRowHeightInPoints(18);
+
+            CellStyle titleStyle  = createTitleStyle(wb);
+            CellStyle headerStyle = createHeaderStyle(wb);
+            CellStyle dataStyle   = createDataStyle(wb);
+            CellStyle moneyStyle  = createMoneyStyle(wb);
+            CellStyle totalStyle  = createTotalStyle(wb);
+
+            int rowIdx = 0;
+
+            // ── Title ──
+            Row titleRow = sheet.createRow(rowIdx++);
+            titleRow.setHeightInPoints(28);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("BÁO CÁO THỐNG KÊ DOANH THU");
-            CellStyle titleStyle = workbook.createCellStyle();
-            Font titleFont = workbook.createFont();
-            titleFont.setSize((short) 16);
-            titleFont.setBold(true);
-            titleStyle.setFont(titleFont);
-            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleCell.setCellValue("BÁO CÁO DOANH THU - SMART OFFICE SPACE");
             titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 2));
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));
 
-            // Summary Section
-            Row sumRow1 = sheet.createRow(2);
-            sumRow1.createCell(0).setCellValue("Từ ngày:");
-            sumRow1.createCell(1).setCellValue(from.toString());
-            sumRow1.createCell(2).setCellValue("Đến ngày:");
-            sumRow1.createCell(3).setCellValue(to.toString());
+            // ── Sub title (date range) ──
+            Row subRow = sheet.createRow(rowIdx++);
+            Cell subCell = subRow.createCell(0);
+            subCell.setCellValue("Từ ngày: " + fromDate.format(DATE_FMT)
+                    + "  →  Đến ngày: " + toDate.format(DATE_FMT));
+            sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 3));
 
-            Row sumRow2 = sheet.createRow(3);
-            sumRow2.createCell(0).setCellValue("Tổng số đơn:");
-            sumRow2.createCell(1).setCellValue(report.getTotalBookings());
-            sumRow2.createCell(2).setCellValue("Tổng doanh thu:");
-            sumRow2.createCell(3).setCellValue(report.getTotalRevenue().doubleValue());
+            rowIdx++; // blank row
 
-            // Header Style
-            CellStyle headerStyle = workbook.createCellStyle();
-            headerStyle.setFillForegroundColor(IndexedColors.NAVY.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            Font headerFont = workbook.createFont();
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
+            // ── Summary cards ──
+            Row s1 = sheet.createRow(rowIdx++);
+            s1.createCell(0).setCellValue("Tổng doanh thu (VNĐ):");
+            s1.createCell(1).setCellValue(summary.getTotalRevenue().doubleValue());
+            s1.getCell(1).setCellStyle(moneyStyle);
 
-            Row headerRow = sheet.createRow(5);
-            String[] headers = {"Thời gian", "Số lượng Booking", "Doanh thu (VND)"};
+            Row s2 = sheet.createRow(rowIdx++);
+            s2.createCell(0).setCellValue("Tổng số đơn đặt phòng:");
+            s2.createCell(1).setCellValue(summary.getTotalBookings());
+
+            rowIdx++; // blank row
+
+            // ── Header ──
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(22);
+            String[] headers = {"Ngày", "Số đơn", "Doanh thu phòng (VNĐ)", "Tổng doanh thu (VNĐ)"};
             for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
             }
 
-            CellStyle numStyle = workbook.createCellStyle();
-            numStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-            numStyle.setBorderBottom(BorderStyle.THIN);
-            numStyle.setBorderTop(BorderStyle.THIN);
-            numStyle.setBorderLeft(BorderStyle.THIN);
-            numStyle.setBorderRight(BorderStyle.THIN);
-
-            CellStyle textStyle = workbook.createCellStyle();
-            textStyle.setBorderBottom(BorderStyle.THIN);
-            textStyle.setBorderTop(BorderStyle.THIN);
-            textStyle.setBorderLeft(BorderStyle.THIN);
-            textStyle.setBorderRight(BorderStyle.THIN);
-
-            int rowIdx = 6;
-            for (RevenueDetailDto detail : report.getDetails()) {
+            // ── Data rows ──
+            for (RevenueReportDTO dto : summary.getDetails()) {
                 Row row = sheet.createRow(rowIdx++);
-                Cell c0 = row.createCell(0); c0.setCellValue(detail.getPeriod()); c0.setCellStyle(textStyle);
-                Cell c1 = row.createCell(1); c1.setCellValue(detail.getBookingCount()); c1.setCellStyle(textStyle);
-                Cell c2 = row.createCell(2); c2.setCellValue(detail.getTotalRevenue().doubleValue()); c2.setCellStyle(numStyle);
+                Cell c0 = row.createCell(0); c0.setCellValue(dto.getPeriod());          c0.setCellStyle(dataStyle);
+                Cell c1 = row.createCell(1); c1.setCellValue(dto.getBookingCount());    c1.setCellStyle(dataStyle);
+                Cell c2 = row.createCell(2); c2.setCellValue(0);                        c2.setCellStyle(moneyStyle); // room revenue placeholder
+                Cell c3 = row.createCell(3); c3.setCellValue(dto.getTotalRevenue().doubleValue()); c3.setCellStyle(moneyStyle);
             }
 
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            // ── Total row ──
+            Row totalRow = sheet.createRow(rowIdx);
+            totalRow.setHeightInPoints(20);
+            Cell tc0 = totalRow.createCell(0); tc0.setCellValue("TỔNG CỘNG");
+            CellStyle tLabelStyle = wb.createCellStyle();
+            Font tf = wb.createFont(); tf.setBold(true); tLabelStyle.setFont(tf);
+            tLabelStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+            tLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            tLabelStyle.setBorderBottom(BorderStyle.MEDIUM);
+            tLabelStyle.setBorderTop(BorderStyle.THIN);
+            tLabelStyle.setBorderLeft(BorderStyle.THIN);
+            tLabelStyle.setBorderRight(BorderStyle.THIN);
+            tc0.setCellStyle(tLabelStyle);
 
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi export excel", e);
+            Cell tc1 = totalRow.createCell(1); tc1.setCellValue(summary.getTotalBookings()); tc1.setCellStyle(totalStyle);
+            Cell tc2 = totalRow.createCell(2); tc2.setCellValue(0);                          tc2.setCellStyle(totalStyle);
+            Cell tc3 = totalRow.createCell(3); tc3.setCellValue(summary.getTotalRevenue().doubleValue()); tc3.setCellStyle(totalStyle);
+
+            autoSizeColumns(sheet, 4);
+            wb.write(response.getOutputStream());
         }
     }
 
+    // ─────────────────────────────────────────────
+    // Export Booking
+    // ─────────────────────────────────────────────
     @Override
-    public byte[] exportBookingExcel(LocalDate from, LocalDate to) {
-        BookingReportDto report = getBookingReport(from, to);
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Đặt Phòng");
-            sheet.setDisplayGridlines(true);
+    public void exportBookingExcel(LocalDateTime fromDate, LocalDateTime toDate,
+                                   HttpServletResponse response) throws IOException {
+        BookingReportDTO summary = getBookingSummary(fromDate, toDate);
+        List<BookingStatDTO> details = getBookingStatsByDay(fromDate, toDate);
 
-            Row titleRow = sheet.createRow(0);
-            Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("BÁO CÁO THỐNG KÊ ĐẶT PHÒNG");
-            CellStyle titleStyle = workbook.createCellStyle();
-            Font titleFont = workbook.createFont();
-            titleFont.setSize((short) 16);
-            titleFont.setBold(true);
-            titleStyle.setFont(titleFont);
-            titleStyle.setAlignment(HorizontalAlignment.CENTER);
-            titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 3));
+        String filename = "BaoCaoDatPhong_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
+        setResponseHeaders(response, filename);
 
-            Row sumRow1 = sheet.createRow(2);
-            sumRow1.createCell(0).setCellValue("Từ ngày:");
-            sumRow1.createCell(1).setCellValue(from.toString());
-            sumRow1.createCell(2).setCellValue("Đến ngày:");
-            sumRow1.createCell(3).setCellValue(to.toString());
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Đặt Phòng");
+            sheet.setDefaultRowHeightInPoints(18);
 
-            Row sumRow2 = sheet.createRow(3);
-            sumRow2.createCell(0).setCellValue("Tổng đơn:");
-            sumRow2.createCell(1).setCellValue(report.getTotalBookings());
-            sumRow2.createCell(2).setCellValue("Đang xử lý:");
-            sumRow2.createCell(3).setCellValue(report.getPendingBookings());
+            CellStyle titleStyle  = createTitleStyle(wb);
+            CellStyle headerStyle = createHeaderStyle(wb);
+            CellStyle dataStyle   = createDataStyle(wb);
+            CellStyle totalStyle  = createTotalStyle(wb);
 
-            Row sumRow3 = sheet.createRow(4);
-            sumRow3.createCell(0).setCellValue("Đã xác nhận:");
-            sumRow3.createCell(1).setCellValue(report.getConfirmedBookings());
-            sumRow3.createCell(2).setCellValue("Đã hủy:");
-            sumRow3.createCell(3).setCellValue(report.getCancelledBookings());
+            int rowIdx = 0;
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            headerStyle.setFillForegroundColor(IndexedColors.NAVY.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            Font headerFont = workbook.createFont();
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            // Title
+            Row titleRow = sheet.createRow(rowIdx++);
+            titleRow.setHeightInPoints(28);
+            Cell tc = titleRow.createCell(0);
+            tc.setCellValue("BÁO CÁO ĐẶT PHÒNG - SMART OFFICE SPACE");
+            tc.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 4));
 
-            Row headerRow = sheet.createRow(6);
-            String[] headers = {"Ngày", "Số lượng Đặt Phòng"};
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
+            Row subRow = sheet.createRow(rowIdx++);
+            Cell sc = subRow.createCell(0);
+            sc.setCellValue("Từ ngày: " + fromDate.format(DATE_FMT) + "  →  Đến ngày: " + toDate.format(DATE_FMT));
+            sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 4));
+
+            rowIdx++; // blank
+
+            // Summary
+            String[] sumLabels = {"Tổng đơn", "Chờ xử lý", "Đã xác nhận", "Đã hủy", "Hoàn thành"};
+            long[]   sumVals   = {summary.getTotalBookings(), summary.getPendingBookings(),
+                    summary.getConfirmedBookings(), summary.getCancelledBookings(),
+                    summary.getCompletedBookings()};
+            Row sumRow = sheet.createRow(rowIdx++);
+            for (int i = 0; i < sumLabels.length; i++) {
+                sumRow.createCell(i).setCellValue(sumLabels[i] + ": " + sumVals[i]);
             }
 
-            CellStyle borderStyle = workbook.createCellStyle();
-            borderStyle.setBorderBottom(BorderStyle.THIN);
-            borderStyle.setBorderTop(BorderStyle.THIN);
-            borderStyle.setBorderLeft(BorderStyle.THIN);
-            borderStyle.setBorderRight(BorderStyle.THIN);
+            rowIdx++; // blank
 
-            int rowIdx = 7;
-            for (BookingDetailDto detail : report.getDetails()) {
+            // Header
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(22);
+            String[] headers = {"Ngày", "Tổng đơn", "Đã xác nhận", "Đã hủy", "Chờ xử lý"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
+            }
+
+            // Data
+            for (BookingStatDTO dto : details) {
                 Row row = sheet.createRow(rowIdx++);
-                Cell c0 = row.createCell(0); c0.setCellValue(detail.getPeriod()); c0.setCellStyle(borderStyle);
-                Cell c1 = row.createCell(1); c1.setCellValue(detail.getBookingCount()); c1.setCellStyle(borderStyle);
+                Cell c0 = row.createCell(0); c0.setCellValue(dto.getPeriod());             c0.setCellStyle(dataStyle);
+                Cell c1 = row.createCell(1); c1.setCellValue(dto.getTotalBookings());      c1.setCellStyle(dataStyle);
+                Cell c2 = row.createCell(2); c2.setCellValue(dto.getConfirmedBookings());  c2.setCellStyle(dataStyle);
+                Cell c3 = row.createCell(3); c3.setCellValue(dto.getCancelledBookings());  c3.setCellStyle(dataStyle);
+                Cell c4 = row.createCell(4); c4.setCellValue(dto.getPendingBookings());    c4.setCellStyle(dataStyle);
             }
 
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            // Total
+            Row totalRow = sheet.createRow(rowIdx);
+            totalRow.createCell(0).setCellValue("TỔNG CỘNG");
+            Cell tv1 = totalRow.createCell(1); tv1.setCellValue(summary.getTotalBookings());     tv1.setCellStyle(totalStyle);
+            Cell tv2 = totalRow.createCell(2); tv2.setCellValue(summary.getConfirmedBookings()); tv2.setCellStyle(totalStyle);
+            Cell tv3 = totalRow.createCell(3); tv3.setCellValue(summary.getCancelledBookings()); tv3.setCellStyle(totalStyle);
+            Cell tv4 = totalRow.createCell(4); tv4.setCellValue(summary.getPendingBookings());   tv4.setCellStyle(totalStyle);
 
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            autoSizeColumns(sheet, 5);
+            wb.write(response.getOutputStream());
         }
     }
 
+    // ─────────────────────────────────────────────
+    // Export Occupancy
+    // ─────────────────────────────────────────────
     @Override
-    public byte[] exportOccupancyExcel(LocalDate from, LocalDate to) {
-        OccupancyReportDto report = getOccupancyReport(from, to);
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Tỷ Lệ Lấp Đầy");
-            sheet.setDisplayGridlines(true);
+    public void exportOccupancyExcel(LocalDateTime fromDate, LocalDateTime toDate,
+                                     HttpServletResponse response) throws IOException {
+        OccupancyReportDTO report = getOccupancyReport(fromDate, toDate);
 
-            Row titleRow = sheet.createRow(0);
-            Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("BÁO CÁO TỶ LỆ LẤP ĐẦY PHÒNG");
-            CellStyle titleStyle = workbook.createCellStyle();
-            Font titleFont = workbook.createFont();
-            titleFont.setSize((short) 16);
-            titleFont.setBold(true);
-            titleStyle.setFont(titleFont);
-            titleStyle.setAlignment(HorizontalAlignment.CENTER);
-            titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 5));
+        String filename = "BaoCaoLapDay_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
+        setResponseHeaders(response, filename);
 
-            Row sumRow1 = sheet.createRow(2);
-            sumRow1.createCell(0).setCellValue("Từ ngày:");
-            sumRow1.createCell(1).setCellValue(from.toString());
-            sumRow1.createCell(2).setCellValue("Đến ngày:");
-            sumRow1.createCell(3).setCellValue(to.toString());
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Tỷ Lệ Lấp Đầy");
+            sheet.setDefaultRowHeightInPoints(18);
 
-            Row sumRow2 = sheet.createRow(3);
-            sumRow2.createCell(0).setCellValue("Tổng số phòng:");
-            sumRow2.createCell(1).setCellValue(report.getTotalRooms());
-            sumRow2.createCell(2).setCellValue("Phòng được đặt trong kỳ:");
-            sumRow2.createCell(3).setCellValue(report.getOccupiedRooms());
+            CellStyle titleStyle  = createTitleStyle(wb);
+            CellStyle headerStyle = createHeaderStyle(wb);
+            CellStyle dataStyle   = createDataStyle(wb);
+            CellStyle moneyStyle  = createMoneyStyle(wb);
 
-            Row sumRow3 = sheet.createRow(4);
-            sumRow3.createCell(0).setCellValue("Tỷ lệ lấp đầy chung:");
-            sumRow3.createCell(1).setCellValue(report.getOccupancyRate().doubleValue() + "%");
+            int rowIdx = 0;
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            headerStyle.setFillForegroundColor(IndexedColors.NAVY.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            Font headerFont = workbook.createFont();
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            // Title
+            Row titleRow = sheet.createRow(rowIdx++);
+            titleRow.setHeightInPoints(28);
+            Cell tc = titleRow.createCell(0);
+            tc.setCellValue("BÁO CÁO TỶ LỆ LẤP ĐẦY PHÒNG - SMART OFFICE SPACE");
+            tc.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
-            Row headerRow = sheet.createRow(6);
-            String[] headers = {"Mã phòng", "Tên phòng", "Loại phòng", "Số lần đặt", "Tỷ lệ lấp đầy (%)", "Trạng thái hiện tại"};
+            Row subRow = sheet.createRow(rowIdx++);
+            subRow.createCell(0).setCellValue("Từ ngày: " + fromDate.format(DATE_FMT)
+                    + "  →  Đến ngày: " + toDate.format(DATE_FMT));
+            sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 5));
+
+            rowIdx++;
+
+            // Summary
+            Row s1 = sheet.createRow(rowIdx++);
+            s1.createCell(0).setCellValue("Tổng số phòng: " + report.getTotalRooms());
+            s1.createCell(2).setCellValue("Phòng đã thuê: " + report.getOccupiedRooms());
+            s1.createCell(4).setCellValue("Tỷ lệ lấp đầy: " + report.getOccupancyRate() + "%");
+
+            rowIdx++;
+
+            // Header
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(22);
+            String[] headers = {"Mã phòng", "Tên phòng", "Loại phòng", "Số lần đặt", "Tỷ lệ lấp đầy (%)", "Trạng thái"};
             for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
             }
 
-            CellStyle borderStyle = workbook.createCellStyle();
-            borderStyle.setBorderBottom(BorderStyle.THIN);
-            borderStyle.setBorderTop(BorderStyle.THIN);
-            borderStyle.setBorderLeft(BorderStyle.THIN);
-            borderStyle.setBorderRight(BorderStyle.THIN);
-
-            int rowIdx = 7;
-            for (RoomOccupancyDetailDto detail : report.getRoomDetails()) {
+            // Data
+            for (RoomOccupancyDTO dto : report.getRoomDetails()) {
                 Row row = sheet.createRow(rowIdx++);
-                Cell c0 = row.createCell(0); c0.setCellValue("SP-" + String.format("%03d", detail.getRoomId())); c0.setCellStyle(borderStyle);
-                Cell c1 = row.createCell(1); c1.setCellValue(detail.getRoomName()); c1.setCellStyle(borderStyle);
-                Cell c2 = row.createCell(2); c2.setCellValue(detail.getRoomType()); c2.setCellStyle(borderStyle);
-                Cell c3 = row.createCell(3); c3.setCellValue(detail.getBookingCount()); c3.setCellStyle(borderStyle);
-                Cell c4 = row.createCell(4); c4.setCellValue(detail.getOccupancyRate().doubleValue()); c4.setCellStyle(borderStyle);
-                Cell c5 = row.createCell(5); c5.setCellValue(detail.getStatus()); c5.setCellStyle(borderStyle);
+                Cell c0 = row.createCell(0); c0.setCellValue("SP-" + String.format("%03d", dto.getRoomId())); c0.setCellStyle(dataStyle);
+                Cell c1 = row.createCell(1); c1.setCellValue(dto.getRoomName());         c1.setCellStyle(dataStyle);
+                Cell c2 = row.createCell(2); c2.setCellValue(dto.getRoomType());         c2.setCellStyle(dataStyle);
+                Cell c3 = row.createCell(3); c3.setCellValue(dto.getBookingCount());     c3.setCellStyle(dataStyle);
+                Cell c4 = row.createCell(4); c4.setCellValue(dto.getOccupancyRate().doubleValue()); c4.setCellStyle(moneyStyle);
+                Cell c5 = row.createCell(5); c5.setCellValue(dto.getStatus());           c5.setCellStyle(dataStyle);
             }
 
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            autoSizeColumns(sheet, 6);
+            wb.write(response.getOutputStream());
         }
-    }
-
-    // Helper methods
-    private DateTimeFormatter getFormatter(String type) {
-        if ("month".equalsIgnoreCase(type)) {
-            return DateTimeFormatter.ofPattern("yyyy-MM");
-        } else if ("year".equalsIgnoreCase(type)) {
-            return DateTimeFormatter.ofPattern("yyyy");
-        }
-        return DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    }
-
-    private List<String> generatePeriods(String type, LocalDate from, LocalDate to) {
-        List<String> list = new ArrayList<>();
-        LocalDate curr = from;
-
-        if ("month".equalsIgnoreCase(type)) {
-            LocalDate temp = from.withDayOfMonth(1);
-            LocalDate limit = to.withDayOfMonth(1);
-            while (!temp.isAfter(limit)) {
-                list.add(temp.format(DateTimeFormatter.ofPattern("yyyy-MM")));
-                temp = temp.plusMonths(1);
-            }
-        } else if ("year".equalsIgnoreCase(type)) {
-            LocalDate temp = from.withDayOfYear(1);
-            LocalDate limit = to.withDayOfYear(1);
-            while (!temp.isAfter(limit)) {
-                list.add(temp.format(DateTimeFormatter.ofPattern("yyyy")));
-                temp = temp.plusYears(1);
-            }
-        } else {
-            while (!curr.isAfter(to)) {
-                list.add(curr.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-                curr = curr.plusDays(1);
-            }
-        }
-        return list;
     }
 }

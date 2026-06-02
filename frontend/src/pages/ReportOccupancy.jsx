@@ -5,11 +5,9 @@ import {
 } from "recharts";
 import {
     getOccupancyReport,
-    exportOccupancyExcel,
 } from "../api/reportApi";
-import SummaryCard      from "../components/SummaryCard.jsx";
+import SummaryCard      from "../components/SummaryCard";
 import ReportDateFilter from "../components/ReportDateFilter";
-import ExportButton     from "../components/ExportButton";
 
 const todayStr     = () => new Date().toISOString().split("T")[0];
 const firstOfMonth = () => {
@@ -101,14 +99,6 @@ export default function ReportOccupancy() {
                 onApply={handleApply}
                 loading={loading}
             >
-                <select className="report-select" defaultValue="occupancy">
-                    <option value="occupancy">Không gian</option>
-                </select>
-                <ExportButton
-                    exportFn={() => exportOccupancyExcel(fromDate, toDate)}
-                    filename="BaoCaoLapDay.xlsx"
-                    label="Xuất Excel"
-                />
             </ReportDateFilter>
 
             {/* Summary cards */}
@@ -265,8 +255,6 @@ export default function ReportOccupancy() {
                         <button className="page-btn" disabled={page === totalPages} onClick={() => setPage(totalPages)}>»</button>
                         <select className="page-size-select" defaultValue={10}>
                             <option value={10}>10/trang</option>
-                            <option value={20}>20/trang</option>
-                            <option value={50}>50/trang</option>
                         </select>
                     </div>
                 )}

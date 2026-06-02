@@ -340,25 +340,27 @@
 
 /* ── Status badge ───────────────────────────── */
 .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 999px; /* Tạo hình bo tròn hoàn toàn */
     font-weight: 600;
-    white-space: nowrap;
+    font-size: 12px;
+    display: inline-block;
+}
+/* Update file CSS của bạn với !important */
+.status-badge.available {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
 }
 
-.status-badge::before {
-    content: "●";
-    font-size: 8px;
+.status-badge.occupied {
+    background-color: #dbeafe !important;
+    color: #1e40af !important;
 }
 
-.status-badge.available  { background: #f0fdf4; color: #16a34a; }
-.status-badge.occupied   { background: #eff6ff; color: #2563eb; }
-.status-badge.maintenance{ background: #fff7ed; color: #ea580c; }
-.status-badge.unavailable{ background: #fef2f2; color: #dc2626; }
+.status-badge.maintenance {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+}
 
 /* ── Pagination ─────────────────────────────── */
 .report-pagination {
