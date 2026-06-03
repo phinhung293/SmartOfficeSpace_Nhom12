@@ -122,7 +122,7 @@ const UserManagement = () => {
                                 <td><span className={`role-badge ${user.role?.roleName?.toUpperCase() === 'ADMIN' ? 'role-admin' : 'role-customer'}`}>{user.role?.roleName?.toUpperCase() || 'CUSTOMER'}</span></td>
                                 <td><span className={`status-badge ${user.status?.toUpperCase() === 'ACTIVE' ? 'status-active' : 'status-locked'}`}>{user.status?.toUpperCase() || 'ACTIVE'}</span></td>
                                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : ''}</td>
-                                <td style={{textAlign: 'center'}}>
+                                <td style={{display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', height: '100%', minHeight: '60px'}}>
                                     <button className="action-btn" onClick={() => { setEditingUser({...user}); setIsEditModalOpen(true); }}><i className="fa-solid fa-pen" style={{color: '#0b57ff'}}></i></button>
                                     <button className="action-btn" onClick={() => setConfirmModal({ isOpen: true, type: 'lock', user: user })}><i className={`fa-solid ${user.status?.toUpperCase() === 'ACTIVE' ? 'fa-lock-open' : 'fa-lock'}`} style={{color: user.status?.toUpperCase() === 'ACTIVE' ? '#059669' : '#f59e0b'}}></i></button>
                                     <button className="action-btn" onClick={() => setConfirmModal({ isOpen: true, type: 'delete', user: user })}><i className="fa-solid fa-trash" style={{color: '#ef4444'}}></i></button>
