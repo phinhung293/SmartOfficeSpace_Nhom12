@@ -22,8 +22,10 @@ export default function BookingSuccess() {
   const handleViewDetail = () => {
     if (bookingId) {
         // 👇 Truyền state fromSuccess để biết nguồn từ đâu
-        navigate(`/booking-detail/${bookingId}`, { 
-        state: { fromSuccess: true } 
+        navigate(`/booking-detail/${bookingId}`, {
+          state: {
+            booking: bookingData
+          }
         });
     } else {
         navigate('/my-bookings');

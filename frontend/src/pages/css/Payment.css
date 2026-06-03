@@ -424,15 +424,3 @@
   .payment-page { padding: 20px; }
   .booking-card { position: static; }
 }
-.payment-option__brand {
-  width: 28px;
-  height: 28px;
-  background: #A50034;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-}
