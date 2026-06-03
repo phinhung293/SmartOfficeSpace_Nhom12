@@ -27,7 +27,7 @@ export default function Home() {
       // payload tương tự như Spaces.jsx nhưng giới hạn size = 4 để hiển thị trên trang chủ
       const payload = {
         workspaceTypeId: workspaceTypeId,
-        size: 4, 
+        size: 8, 
         page: 0
       };
       const res = await searchRooms(payload);

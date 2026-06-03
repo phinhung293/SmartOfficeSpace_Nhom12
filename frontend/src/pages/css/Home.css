@@ -184,14 +184,27 @@
 
 /* Grid & Cards */
 .spaces-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: flex;
+  overflow-x: auto;
   gap: 30px;
   margin-top: 40px;
+  padding-bottom: 20px;
+  scrollbar-width: thin;
+}
+
+.spaces-grid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.spaces-grid::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
 /* Tái sử dụng và làm đẹp thêm style cho Card tương tự Spaces.jsx nhưng phù hợp Homepage */
 .h-room-card {
+  flex: 0 0 calc(33.333% - 20px);
+  min-width: 300px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
