@@ -43,12 +43,7 @@ import AdminNotificationPage from './pages/AdminNotificationPage';
 import AdminNotificationAllPage from './pages/AdminNotificationAllPage';
 import AdminNotificationSearchPage from './pages/AdminNotificationSearchPage';
 
-// Component tạm cho trang chủ
-const Home = () => (
-    <div style={{ padding: '100px', textAlign: 'center' }}>
-        <h2>Trang chủ (Đang phát triển)</h2>
-    </div>
-);
+import Home from './pages/Home';
 
 // Component thông báo đặt phòng thành công
 // const BookingSuccess = () => (
