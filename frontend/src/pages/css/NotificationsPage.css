@@ -1,0 +1,184 @@
+.notif-page-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+}
+
+/* Breadcrumb */
+.notif-breadcrumb {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+.notif-breadcrumb span:first-child {
+    cursor: pointer;
+    color: #6b7280;
+}
+.notif-breadcrumb span:first-child:hover { text-decoration: underline; }
+
+/* Card */
+.notif-page-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Header */
+.notif-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 28px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.notif-page-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+/* Nút đánh dấu tất cả */
+.notif-page-markall {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.notif-page-markall.markall-done {
+    color: #9ca3af;
+    cursor: default;
+}
+.notif-page-markall.markall-done:hover {
+    text-decoration: none;
+}
+
+/* Item */
+.notif-page-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 28px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.notif-page-item:last-child { border-bottom: none; }
+.notif-page-item:hover { background: #f9fafb; }
+.notif-page-item.unread { background: #eff6ff; }
+.notif-page-item.unread:hover { background: #dbeafe; }
+
+.notif-page-icon {
+    width: 48px; height: 48px; flex-shrink: 0;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+}
+
+.notif-page-body { flex: 1; }
+
+.notif-page-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notif-page-dot-title {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.notif-page-message {
+    font-size: 14px;
+    color: #4b5563;
+    margin: 0 0 10px;
+}
+
+/* Nút Xem chi tiết */
+.notif-page-btn {
+    border: 1.5px solid #3b82f6;
+    background: white;
+    color: #3b82f6;
+    font-size: 13px;
+    padding: 5px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+}
+.notif-page-btn:hover {
+    background: #eff6ff;
+}
+
+/* Meta bên phải */
+.notif-page-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 110px;
+}
+.notif-page-time {
+    font-size: 13px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+/* Chấm xanh bên phải */
+.notif-page-dot-right {
+    width: 10px;
+    height: 10px;
+    background: #3b82f6;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.notif-page-empty {
+    padding: 48px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 15px;
+}
+
+/* FIX #7: Nút xem thêm */
+.notif-page-loadmore {
+    padding: 20px 28px;
+    text-align: center;
+    border-top: 1px solid #f3f4f6;
+}
+.notif-page-loadmore-btn {
+    border: 1.5px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.notif-page-loadmore-btn:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+.notif-page-loadmore-btn:disabled {
+    cursor: default;
+    opacity: 0.6;
+}

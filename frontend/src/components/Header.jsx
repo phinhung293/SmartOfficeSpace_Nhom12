@@ -1,100 +1,143 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, NavLink } from 'react-router-dom';
 import logoImg from '../assets/logo.png';
-const Header = () => {
-    // Quản lý trạng thái mở/đóng menu mobile
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    // Quản lý trạng thái scroll để thêm class 'scrolled'
-    const [isScrolled, setIsScrolled] = useState(false);
-    // Quản lý tab đang được active
-    const [activeTab, setActiveTab] = useState('Trang chủ');
+import NotificationBell from './NotificationBell';
 
-    const navItems = ['Trang chủ', 'Không gian', 'Tiện ích', 'Khuyến mãi', 'Liên hệ'];
+const Header = () => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    const navigate = useNavigate();
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    const role = user?.role || "";
+
+    const navItems = [
+        { name: 'Trang chủ', path: '/' },
+        { name: 'Không gian', path: '/spaces' },
+        { name: 'Tiện ích', path: '/utilities' },
+        { name: 'Tin tức', path: '/news' },
+        { name: 'Liên hệ', path: '/contact' }
+    ];
 
     useEffect(() => {
-        // Lắng nghe sự kiện scroll
-        const handleScroll = () => {
-            if (window.scrollY > 10) {
-                setIsScrolled(true);
-            } else {
-                setIsScrolled(false);
+        const handleScroll = () => setIsScrolled(window.scrollY > 10);
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
             }
         };
-
-        // Lắng nghe phím ESC để đóng menu
-        const handleKeyDown = (e) => {
-            if (e.key === "Escape") {
-                setIsMenuOpen(false);
-            }
-        };
-
         window.addEventListener("scroll", handleScroll);
-        window.addEventListener("keydown", handleKeyDown);
-
-        // Cleanup function khi component unmount
+        document.addEventListener("mousedown", handleClickOutside);
         return () => {
             window.removeEventListener("scroll", handleScroll);
-            window.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
 
+    const handleLogout = () => {
+        localStorage.clear();
+        setIsDropdownOpen(false);
+        navigate('/');
+        window.location.reload();
+    };
+
     return (
         <>
-            {/* Overlay */}
-            <div 
-                className={`overlay ${isMenuOpen ? "active" : ""}`} 
-                onClick={() => setIsMenuOpen(false)}
-            ></div>
+            <div className={`overlay ${isMenuOpen ? "active" : ""}`} onClick={() => setIsMenuOpen(false)}></div>
 
-            {/* Header */}
             <header className={`header ${isScrolled ? "scrolled" : ""}`}>
-                {/* Logo */}
-                <div className="logo">
-                    <img src={logoImg} alt="Smart Office Space Logo" />
+                {/* LOGO */}
+                <div className="logo" onClick={() => navigate(role === 'ADMIN' ? '/admin' : '/')}>
+                    <img src={logoImg} alt="Logo" />
                 </div>
 
-                {/* Menu Toggle */}
                 <div className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                     <i className="fa-solid fa-bars"></i>
                 </div>
 
-                {/* Navbar */}
+                {/* NAVBAR TRUNG TÂM */}
                 <nav className={`navbar ${isMenuOpen ? "active" : ""}`}>
-                    {navItems.map((item, index) => (
-                        <a 
-                            href="#" 
-                            key={index}
-                            className={activeTab === item ? "active" : ""}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                setActiveTab(item);
-                                setIsMenuOpen(false); // Đóng menu mobile khi chọn tab
-                            }}
-                        >
-                            {item}
-                        </a>
-                    ))}
-
-                    {/* Mobile Extra */}
-                    <div className="mobile-extra">
-                        <div className="mobile-language">
-                            <i className="fa-solid fa-globe"></i>
-                            <span>VI</span>
-                            <i className="fa-solid fa-chevron-down"></i>
-                        </div>
-                        <button className="mobile-login">Đăng nhập</button>
-                        <button className="mobile-register">Đăng ký</button>
-                    </div>
+                    {role !== 'ADMIN' ? (
+                        navItems.map((item, index) => (
+                            <NavLink
+                                to={item.path}
+                                key={index}
+                                onClick={() => setIsMenuOpen(false)}
+                                // Tự động thêm class "active" khi trang đó được chọn
+                                className={({ isActive }) => isActive ? "nav-item-link active" : "nav-item-link"}
+                            >
+                                {item.name}
+                            </NavLink>
+                        ))
+                    ) : (
+                        <span style={{ color: '#003594', fontSize: '16px', fontWeight: '700' }}>
+                            HỆ THỐNG QUẢN TRỊ QUẢN LÝ
+                        </span>
+                    )}
                 </nav>
 
-                {/* Right */}
+                {/* HEADER RIGHT */}
                 <div className="header-right">
                     <div className="language">
                         <i className="fa-solid fa-globe"></i>
                         <span>VI</span>
-                        <i className="fa-solid fa-chevron-down"></i>
+                        <i className="fa-solid fa-chevron-down" style={{ fontSize: '12px' }}></i>
                     </div>
-                    <button className="login-btn">Đăng nhập</button>
-                    <button className="register-btn">Đăng ký</button>
+
+                    {user ? (
+                        <div className="user-logged-wrapper">
+                            <NotificationBell />
+                            <div className="profile-dropdown-container" ref={dropdownRef}>
+                                <div className="profile-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                                    <i className="fa-regular fa-user-circle avatar-icon"></i>
+                                    <span className="user-display-name">{user.name}</span>
+                                    <i className={`fa-solid fa-chevron-down arrow-toggle ${isDropdownOpen ? 'rotate' : ''}`}></i>
+                                </div>
+
+                                {isDropdownOpen && (
+                                    <div className="user-dropdown-menu">
+                                        {role === 'ADMIN' ? (
+                                            /* KHI LÀ ADMIN XỔ XUỐNG: CHỈ CÓ CÁ NHÂN & ĐĂNG XUẤT */
+                                            <>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/info'); setIsDropdownOpen(false); }}>
+                                                    <i className="fa-regular fa-id-card"></i> Thông tin cá nhân
+                                                </div>
+                                                <div className="dropdown-divider"></div>
+                                                <div className="dropdown-item logout" onClick={handleLogout}>
+                                                    <i className="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+                                                </div>
+                                            </>
+                                        ) : (
+                                            /* KHI LÀ USER THƯỜNG XỔ XUỐNG: ĐẦY ĐỦ CÁC MỤC */
+                                            <>
+                                                <div className="dropdown-header-title">Tài khoản</div>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/info'); setIsDropdownOpen(false); }}>
+                                                    <i className="fa-regular fa-id-card"></i> Thông tin cá nhân
+                                                </div>
+                                                <div className="dropdown-item" onClick={() => { navigate('/my-bookings'); setIsDropdownOpen(false); }}>
+                                                    <i className="fa-regular fa-calendar-check"></i> Lịch sử đặt phòng
+                                                </div>
+                                                <div className="dropdown-item" onClick={() => { navigate('/profile/invoice-history'); setIsDropdownOpen(false); }}>
+                                                    <i className="fa-regular fa-file-lines"></i> Lịch sử hóa đơn
+                                                </div>
+                                                <div className="dropdown-divider"></div>
+                                                <div className="dropdown-item logout" onClick={handleLogout}>
+                                                    <i className="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <button className="login-btn" onClick={() => navigate('/login')}>Đăng nhập</button>
+                            <button className="register-btn" onClick={() => navigate('/register')}>Đăng ký</button>
+                        </>
+                    )}
                 </div>
             </header>
         </>

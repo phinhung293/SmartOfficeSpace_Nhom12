@@ -1,0 +1,440 @@
+/* ==========================================================================
+   FILE: AdminDashboard.css (BẢN ĐẦY ĐỦ - GIỮ HEADER/FOOTER CHUNG)
+   ========================================================================== */
+
+/* KHUNG LAYOUT CHÍNH (Nằm kẹp giữa Header và Footer tổng) */
+.admin-main-body-layout {
+    display: flex;
+    min-height: calc(100vh - 140px); /* Tự động co giãn theo chiều cao màn hình trừ Header/Footer */
+    background-color: #f8fafc;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 1. THANH SIDEBAR MENU BÊN TRÁI */
+.admin-sidebar {
+    width: 260px;
+    background: #ffffff;
+    border-right: 1.5px solid #e2e8f0;
+    padding-top: 20px;
+    flex-shrink: 0; /* Không cho sidebar bị bóp nghẹt khi thu nhỏ màn hình */
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-node {
+    margin-bottom: 2px;
+}
+
+.menu-link-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 24px;
+    color: #475569;
+    font-size: 14.5px;
+    font-weight: 500;
+    cursor: pointer;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.menu-link-item:hover,
+.active-node .menu-link-item {
+    background-color: #f1f5f9;
+    color: #0b57ff;
+}
+
+.menu-icon {
+    font-size: 16px;
+    width: 20px;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.active-node .menu-icon,
+.menu-link-item:hover .menu-icon {
+    color: #0b57ff;
+}
+
+.sub-arrow {
+    margin-left: auto;
+    font-size: 11px;
+    transition: transform 0.2s;
+    color: #94a3b8;
+}
+
+.sub-arrow.rotate {
+    transform: rotate(-90deg);
+}
+
+/* SUBMENU ĐỔ XUỐNG CỦA CÁC MỤC QUẢN LÝ */
+.sidebar-sub-menu {
+    list-style: none;
+    padding: 0;
+    background-color: #f8fafc;
+}
+
+.sub-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 24px 11px 45px;
+    font-size: 13.5px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sub-menu-item:hover {
+    color: #0b57ff;
+}
+
+.sub-menu-item.active {
+    background-color: #f1f0ff; /* Nền tím light dịu mắt như Hình 3 */
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.dot-icon {
+    width: 5px;
+    height: 5px;
+    background-color: #94a3b8;
+    border-radius: 50%;
+}
+
+.sub-menu-item.active .dot-icon {
+    background-color: #4f46e5;
+}
+
+
+/* 2. VÙNG HIỂN THỊ NỘI DUNG CHÍNH BÊN PHẢI */
+.admin-main-content {
+    flex: 1;
+    padding: 25px 30px;
+    overflow-y: auto;
+    background-color: #f8fafc;
+}
+
+.admin-breadcrumb {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 25px;
+}
+
+.admin-breadcrumb span {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+
+/* ====== CÁC THÀNH PHẦN BÊN TRONG TRANG TỔNG QUAN (DASHBOARD) ====== */
+
+/* CỤM 4 CÁI CARD METRICS TRÊN CÙNG */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+}
+
+.metric-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+}
+
+/* Đổ màu nền icon theo đúng bản thiết kế */
+.blue-bg { background: #e0f2fe; color: #0369a1; }
+.purple-bg { background: #f3e8ff; color: #6b21a8; }
+.lightblue-bg { background: #e0e7ff; color: #3730a3; }
+.green-bg { background: #dcfce7; color: #166534; }
+
+.metric-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-label {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 4px 0 0 0;
+}
+
+
+/* ĐỊNH DẠNG CÁC DÒNG CHỨA CARD ĐÔI (DOUBLE COLUMN) */
+.dashboard-row.double-column {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.card-half {
+    flex: 1;
+    width: 50%;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+}
+
+
+/* CARD THÔNG BÁO HỆ THỐNG (CÓ TABS CHUYỂN ĐỔI) */
+.card-header-tabs {
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    padding-bottom: 8px;
+    position: relative;
+}
+
+.tab-btn.active {
+    color: #ef4444; /* Dòng chữ "Quan trọng" màu đỏ */
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #ef4444;
+}
+
+.card-header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 15px;
+}
+
+.list-item-notify {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.list-item-notify:last-of-type {
+    border-bottom: none;
+}
+
+.notify-title {
+    font-size: 13.5px;
+    color: #334155;
+    font-weight: 500;
+}
+
+.notify-time {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.view-all-link {
+    font-size: 12.5px;
+    color: #0b57ff;
+    text-decoration: none;
+    font-weight: 600;
+    text-align: right;
+    margin-top: auto;
+    display: block;
+    padding-top: 10px;
+}
+
+
+/* CSS CHO CÁC BẢNG TRONG DASHBOARD (TABLE STYLES) */
+.card-body-table {
+    overflow-x: auto;
+}
+
+.admin-dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.admin-dash-table th {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    padding: 10px 8px;
+    border-bottom: 1.5px solid #e2e8f0;
+    font-weight: 600;
+}
+
+.admin-dash-table td {
+    font-size: 13px;
+    color: #334155;
+    padding: 12px 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Các nhãn trạng thái phòng (Badge) */
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-empty { background: #e0f2fe; color: #0369a1; }
+.badge-busy { background: #f3e8ff; color: #6b21a8; }
+.badge-booked { background: #fef3c7; color: #d97706; }
+
+.action-txt {
+    color: #0b57ff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* Màu chữ trạng thái đơn hàng */
+.status-success { color: #10b981; font-weight: 600; }
+.status-pending { color: #f59e0b; font-weight: 600; }
+.status-cancel { color: #ef4444; font-weight: 600; }
+
+
+/* CARD BIỂU ĐỒ DOANH THU CHUẨN ĐỒ HỌA */
+.card-header-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.chart-title-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.main-title-chart {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.sub-title-chart {
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+.chart-legend {
+    font-size: 12px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    background: #0b57ff;
+    border-radius: 3px;
+}
+
+/* Khung mô phỏng biểu đồ cột */
+.mock-chart-container {
+    display: flex;
+    gap: 15px;
+    height: 180px;
+    margin-top: 15px;
+}
+
+.chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #94a3b8;
+    width: 35px;
+    text-align: right;
+    padding-bottom: 22px;
+    font-weight: 500;
+}
+
+.chart-bars-area {
+    flex: 1;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    border-bottom: 1.5px solid #cbd5e1;
+    padding-bottom: 5px;
+}
+
+.chart-bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 50px;
+    height: 100%;
+    justify-content: flex-end;
+}
+
+.actual-bar {
+    width: 28px;
+    background: linear-gradient(180deg, #0b57ff 0%, #3b82f6 100%);
+    border-radius: 4px 4px 0 0;
+    animation: scaleUpBar 0.6s cubic-bezier(0.1, 1, 0.1, 1);
+}
+
+.bar-label {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Hiệu ứng cột mọc lên sinh động khi tải trang */
+@keyframes scaleUpBar {
+    from { height: 0; }
+}
