@@ -77,7 +77,11 @@ const NotificationDetailPage = () => {
             if (n.referenceId && ['BOOKING', 'PAYMENT', 'REMINDER', 'CANCELLATION'].includes(n.type)) {
                 try {
                     const bRes = await axiosInstance.get(`/bookings/${n.referenceId}`);
-                    setBooking(bRes.data.data);
+                    let rawBooking = bRes.data.data;
+                    if (rawBooking && rawBooking.bookingStatus) {
+                        rawBooking.status = rawBooking.bookingStatus.statusName;
+                    }
+                    setBooking(rawBooking);
                 } catch {
                     // booking có thể đã bị xóa, bỏ qua
                 }
@@ -209,10 +213,10 @@ const NotificationDetailPage = () => {
                                     <span>Trạng thái thanh toán</span>
                                     <span className={`nfd-status ${
                                         booking.status === 'CANCELLED'  ? 'refunded' :
-                                            booking.paymentStatus === 'PAID' ? 'paid'    : 'pending'
+                                            booking.status === 'CONFIRMED' ? 'paid'    : 'pending'
                                     }`}>
                                         {booking.status === 'CANCELLED'  ? 'Đã hoàn tiền'      :
-                                            booking.paymentStatus === 'PAID' ? 'Thanh toán thành công' : 'Chưa thanh toán'}
+                                            booking.status === 'CONFIRMED' ? 'Thanh toán thành công' : 'Chưa thanh toán'}
                                     </span>
                                 </div>
                                 <div className="nfd-info-row">
