@@ -90,7 +90,7 @@ public class EmailService {
                     <tr><td style="padding:4px 0;color:#777">Tổng tiền</td><td style="color:#0b57ff;font-weight:700">%s</td></tr>
                   </table>
                 </div>
-                <p style="color:#555;font-size:13px">⚠️ Vui lòng thanh toán trong vòng <b>5 phút</b> để giữ chỗ.</p>
+                <p style="color:#555;font-size:13px">⚠️ Vui lòng thanh toán trong vòng <b>10 phút</b> để giữ chỗ.</p>
                 <p style="color:#aaa;font-size:12px;margin-top:32px">© 2026 Smart Office Space · Đại học Công Nghệ Sài Gòn</p>
               </div>
             </div>
