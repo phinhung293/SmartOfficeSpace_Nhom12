@@ -221,14 +221,6 @@ export default function ReportRevenue() {
                                         <td><strong>{Number(row.totalRevenue).toLocaleString("vi-VN")}</strong></td>
                                     </tr>
                                 ))}
-                                {/* Total row */}
-                                <tr className="total-row">
-                                    <td>Tổng cộng</td>
-                                    <td>{summary?.totalBookings}</td>
-                                    <td>{Number(summary?.totalRevenue || 0).toLocaleString("vi-VN")}</td>
-                                    <td>0</td>
-                                    <td>{Number(summary?.totalRevenue || 0).toLocaleString("vi-VN")}</td>
-                                </tr>
                             </>
                         )}
                         </tbody>

@@ -40,6 +40,13 @@ export default function Payment() {
   const [qrCode, setQrCode] = useState(null);
   const [qrExpired, setQrExpired] = useState(false);
 
+  useEffect(() => {
+    if (booking && selectedMethod === 'MOMO') {
+      handleSelectMethod('MOMO');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!booking) {
     return (
         <div className="payment-page">
