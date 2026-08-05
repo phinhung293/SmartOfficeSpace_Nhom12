@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * Tự động expire các booking PENDING_PAYMENT đã hết thời gian giữ chỗ (5 phút).
+ * Tự động expire các booking PENDING_PAYMENT đã hết thời gian giữ chỗ (10 phút).
  * Chạy mỗi 1 phút.
  */
 @Slf4j

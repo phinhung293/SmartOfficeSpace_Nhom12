@@ -1,0 +1,201 @@
+.ansearch-filter-card {
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    border: 1.5px solid #111827;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.ansearch-filter-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+}
+
+.ansearch-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ansearch-filter-group label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.ansearch-filter-group input[type="text"] {
+    padding: 0 10px;
+    height: 40px;
+    border: 1.5px solid #e5e7eb;
+    font-size: 13px;
+    color: #374151;
+    background: #fff;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ansearch-filter-group input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+.ansearch-filter-group input[type="text"]:focus {
+    border-color: #4f46e5;
+}
+
+.ansearch-btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ansearch-reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 22px;
+    background: #fff;
+    color: #374151;
+    border: 1.5px solid #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    height: 45px;
+    transition: all 0.2s;
+}
+.ansearch-reset-btn:hover { background: #f3f4f6; }
+
+.ansearch-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.ansearch-result-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 2px;
+}
+
+.ansearch-result-count {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.ansearch-noti-id {
+    color: #4f46e5;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13.5px;
+}
+.ansearch-noti-id:hover { text-decoration: underline; }
+
+.ansearch-status {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+.ansearch-status.confirmed { background: #f0fdf4; color: #16a34a; }
+.ansearch-status.pending   { background: #eff6ff; color: #2563eb; }
+.ansearch-status.waiting   { background: #fef3c7; color: #d97706; }
+.ansearch-status.cancelled { background: #fef2f2; color: #dc2626; }
+
+.ansearch-nav-btn {
+    padding: 7px 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ansearch-nav-btn:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
+.ansearch-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Fix: mũi tên select nằm đúng trong ô Trạng thái thanh toán */
+.ansearch-filter-group .anall-select-wrap {
+    width: 100%;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ansearch-filter-group .anall-select-wrap select {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 32px;
+}
+
+.ansearch-filter-group .anall-select-wrap i {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* Fix: date range trong filter group */
+.ansearch-filter-group .anall-date-range {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0;
+    border: 1.5px solid #e5e7eb;
+    padding: 0 10px;
+    background: #fff;
+    height: 40px;
+}
+
+.ansearch-filter-group .anall-date-range input[type="text"] {
+    border: none;
+    outline: none;
+    padding: 0;
+    font-size: 13px;
+    color: #374151;
+    background: transparent;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+}
+
+.ansearch-filter-group .anall-date-range input[type="text"]::placeholder {
+    color: #9ca3af;
+}
+
+.ansearch-filter-group .anall-date-range:focus-within {
+    border-color: #4f46e5;
+}
+
+/* Nhóm chứa 2 nút nằm thẳng hàng với các filter */
+.ansearch-btn-group {
+    flex: 0 0 auto;
+}
+
+.ansearch-btn-group label {
+    visibility: hidden; /* giữ khoảng trống label để canh hàng */
+}
+
+.ansearch-inline-btns {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+}
+
+.ansearch-inline-btns .anall-search-btn,
+.ansearch-inline-btns .ansearch-reset-btn {
+    height: 40px;
+    white-space: nowrap;
+}

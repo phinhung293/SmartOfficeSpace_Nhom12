@@ -169,6 +169,7 @@ export default function Booking() {
                 endTime: tr.end + ":00",
             });
 
+            // Chuyển tiếp sang trang Payment kèm Object thông tin hóa đơn
             navigate("/payment", {
                 state: {
                     booking: {

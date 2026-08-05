@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import logoImg from '../assets/logo.png';
+import NotificationBell from './NotificationBell';
 
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,11 +88,7 @@ const Header = () => {
 
                     {user ? (
                         <div className="user-logged-wrapper">
-                            <div className="notification-bell">
-                                <i className="fa-regular fa-bell"></i>
-                                <span className="bell-badge"></span>
-                            </div>
-
+                            <NotificationBell />
                             <div className="profile-dropdown-container" ref={dropdownRef}>
                                 <div className="profile-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                                     <i className="fa-regular fa-user-circle avatar-icon"></i>

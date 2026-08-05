@@ -12,6 +12,7 @@ import com.smartoffice.backend.repositories.BookingStatusRepository;
 import com.smartoffice.backend.repositories.RoomRepository;
 import com.smartoffice.backend.repositories.UserRepository;
 import com.smartoffice.backend.services.BookingService;
+import com.smartoffice.backend.services.NotificationService; // ← THÊM MỚI
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,12 +36,13 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     // Thời gian giữ chỗ: 5 phút
-    private static final int LOCK_MINUTES = 5;
+    private static final int LOCK_MINUTES = 10;
 
     private final BookingRepository bookingRepository;
     private final BookingStatusRepository bookingStatusRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService; // ← THÊM MỚI
 
     // ─── STATUS HELPERS ──────────────────────────────────────────────────────
 
@@ -56,7 +58,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse createBooking(BookingRequest request, Integer userId) {
 
         LocalDateTime startTime = LocalDateTime.of(request.getDate(), request.getStartTime());
-        LocalDateTime endTime   = LocalDateTime.of(request.getDate(), request.getEndTime());
+        LocalDateTime endTime = LocalDateTime.of(request.getDate(), request.getEndTime());
 
         if (!endTime.isAfter(startTime)) {
             throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
@@ -73,7 +75,6 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại."));
 
         // ── COLLISION CHECK với PESSIMISTIC WRITE LOCK ──
-        // Câu query này sẽ lock các rows liên quan cho đến hết transaction
         List<Booking> conflicts = bookingRepository.findOverlappingWithLock(
                 request.getRoomId(), startTime, endTime
         );
@@ -104,14 +105,16 @@ public class BookingServiceImpl implements BookingService {
         // Save trước để lấy ID cho bookingCode
         Booking saved = bookingRepository.save(booking);
 
-        // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} — dùng ID tránh duplicate ──
+        // ── Sinh bookingCode: WS{YYMMDD}-{bookingId} ──
         String datePart = request.getDate().format(DateTimeFormatter.ofPattern("yyMMdd"));
-        String prefix   = "WS" + datePart + "-";
+        String prefix = "WS" + datePart + "-";
         saved.setBookingCode(prefix + String.format("%03d", saved.getBookingId()));
         saved = bookingRepository.save(saved);
 
         log.info("Booking created: {} for room {} by user {}", saved.getBookingCode(),
                 room.getName(), user.getEmail());
+
+        notificationService.onBookingCreated(saved); // ← THÊM MỚI
 
         return toResponse(saved);
     }
@@ -123,13 +126,13 @@ public class BookingServiceImpl implements BookingService {
     public SlotStatusResponse getSlotStatus(Integer roomId, LocalDate date) {
 
         LocalDateTime dayStart = LocalDateTime.of(date, LocalTime.of(8, 0));
-        LocalDateTime dayEnd   = LocalDateTime.of(date, LocalTime.of(22, 0));
+        LocalDateTime dayEnd = LocalDateTime.of(date, LocalTime.of(22, 0));
 
         List<Booking> dayBookings = bookingRepository.findBookingsForDay(roomId, dayStart, dayEnd);
 
-        List<Integer> bookedSlots  = new ArrayList<>();
-        List<Integer> lockedSlots  = new ArrayList<>();
-        List<Integer> maintSlots   = new ArrayList<>();
+        List<Integer> bookedSlots = new ArrayList<>();
+        List<Integer> lockedSlots = new ArrayList<>();
+        List<Integer> maintSlots = new ArrayList<>();
 
         for (Booking b : dayBookings) {
             String statusName = b.getBookingStatus().getStatusName();
@@ -140,7 +143,6 @@ public class BookingServiceImpl implements BookingService {
                     bookedSlots.addAll(slotIndexes);
                     break;
                 case "PENDING_PAYMENT":
-                    // Nếu chưa expire → locked; nếu đã expire → bỏ qua (scheduler sẽ xử lý)
                     if (b.getLockedUntil() != null && b.getLockedUntil().isAfter(LocalDateTime.now())) {
                         lockedSlots.addAll(slotIndexes);
                     }
@@ -153,17 +155,14 @@ public class BookingServiceImpl implements BookingService {
         return new SlotStatusResponse(bookedSlots, maintSlots, lockedSlots);
     }
 
-    /**
-     * Chuyển startTime → endTime thành danh sách slot index (08:00=0, 09:00=1, ...)
-     */
     private List<Integer> toSlotIndexes(LocalDateTime start, LocalDateTime end, LocalDate date) {
         List<Integer> indexes = new ArrayList<>();
         LocalTime s = start.toLocalTime();
         LocalTime e = end.toLocalTime();
-        int base = 8; // slot 0 = 08:00
+        int base = 8;
         for (int h = base; h < 22; h++) {
             LocalTime slotStart = LocalTime.of(h, 0);
-            LocalTime slotEnd   = LocalTime.of(h + 1, 0);
+            LocalTime slotEnd = LocalTime.of(h + 1, 0);
             if (!slotStart.isBefore(s) && !slotEnd.isAfter(e)) {
                 indexes.add(h - base);
             }
@@ -194,7 +193,6 @@ public class BookingServiceImpl implements BookingService {
             spec = spec.and((root, q, cb) ->
                     cb.equal(root.get("bookingStatus").get("statusName"), status));
         }
-        // Lọc theo khoảng ngày dateFrom → dateTo
         if (dateFrom != null) {
             LocalDateTime from = dateFrom.atStartOfDay();
             spec = spec.and((root, q, cb) ->
@@ -245,8 +243,10 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setBookingStatus(getStatus("CANCELLED"));
-        booking.setLockedUntil(null); // mở lock ngay
-        return toResponse(bookingRepository.save(booking));
+        booking.setLockedUntil(null);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.onAdminCancelledBooking(saved); // thông báo cho user + admin
+        return toResponse(saved);
     }
 
     // ─── 6. ADMIN XÁC NHẬN THANH TOÁN ───────────────────────────────────────
@@ -263,7 +263,11 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(getStatus("CONFIRMED"));
         booking.setLockedUntil(null);
-        return toResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking); // ← đổi thành variable
+
+        notificationService.onPaymentConfirmed(saved); // ← THÊM MỚI
+
+        return toResponse(saved);
     }
 
     // ─── MAP TO RESPONSE ─────────────────────────────────────────────────────
@@ -329,6 +333,13 @@ public class BookingServiceImpl implements BookingService {
                 .filter(a -> a != null)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
+
+    @Override
+    public Booking findById(Integer id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+    }
+
     @Override
     public BookingResponse getMyBookingById(Integer bookingId, Integer userId) {
 
@@ -338,6 +349,7 @@ public class BookingServiceImpl implements BookingService {
 
         return toResponse(booking);
     }
+
     @Override
     @Transactional
     public BookingResponse cancelMyBooking(Integer bookingId, Integer userId) {
@@ -359,8 +371,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(getStatus("CANCELLED"));
         booking.setLockedUntil(null);
 
-        bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.onUserCancelledBooking(saved); // thông báo cho user + admin
 
-        return toResponse(booking);
+        return toResponse(saved);
     }
 }

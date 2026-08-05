@@ -92,6 +92,7 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<!-- HTTP Client cho gọi API Sepay -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -103,6 +104,21 @@
 			<artifactId>okhttp</artifactId>
 			<version>4.12.0</version>
 		</dependency>
+		<!-- Apache POI — tạo file Excel (.xlsx) -->
+
+			<dependency>
+				<groupId>org.apache.poi</groupId>
+				<artifactId>poi</artifactId>
+				<version>5.2.5</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.poi</groupId>
+				<artifactId>poi-ooxml</artifactId>
+				<version>5.2.5</version>
+			</dependency>
+
+
 	</dependencies>
 
 	<build>
