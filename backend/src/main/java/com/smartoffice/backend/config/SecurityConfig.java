@@ -74,9 +74,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        
+        // Cấu hình danh sách Origins được phép truy cập
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:5173",          // Chạy Local Vite
+                "http://localhost:3000",          // Chạy Local React
+                "https://*.vercel.app"             // Cho phép tất cả domain Vercel (Deploy)
+        ));
+        
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Cho phép gửi tất cả Headers (kể cả Authorization mang JWT token)
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Bắt buộc nếu bạn gửi Cookie hoặc Header Authorization mang Session/Token
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
