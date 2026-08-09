@@ -40,6 +40,8 @@ public class SecurityConfig {
                         // Auth công khai
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/api/payments/webhook/sepay").permitAll()
+
                         // Rooms công khai: Chỉ cho phép xem danh sách (GET) và tìm kiếm (POST search) giống booking
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/rooms/search").permitAll()

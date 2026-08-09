@@ -58,7 +58,15 @@ export default function InvoiceHistory() {
         );
     };
 
- 
+    // Xem chi tiết hóa đơn -> dẫn đến BookingDetail với state fromInvoice = true
+    const handleViewDetail = (booking) => {
+        navigate(`/booking-detail/${booking.bookingId}`, {
+            state: {
+                fromInvoice: true,
+                booking: booking
+            }
+        });
+    };
 
     return (
         <div style={{ minHeight: "70vh", padding: "20px", maxWidth: 1000, margin: "0 auto" }}>

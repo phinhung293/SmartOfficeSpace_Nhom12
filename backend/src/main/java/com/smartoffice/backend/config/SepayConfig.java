@@ -15,4 +15,9 @@ public class SepayConfig {
     private String bankAccountName;
     private String bankhubUrl = "https://bankhub-api-sandbox.sepay.vn";
     private String bankAccountXid;
+
+    // Demo mode: thu nhỏ số tiền thật cần chuyển khi test (ví dụ 2.000.000đ -> 2.000đ)
+    private boolean demoMode = true;
+    private int demoScaleFactor = 1000;
+    private String webhookSecret;
 }

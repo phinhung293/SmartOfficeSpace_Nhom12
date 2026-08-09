@@ -44,6 +44,7 @@ import AdminNotificationAllPage from './pages/AdminNotificationAllPage';
 import AdminNotificationSearchPage from './pages/AdminNotificationSearchPage';
 
 import Home from './pages/Home';
+import InvoiceHistory from './pages/InvoiceHistory';
 
 // Component thông báo đặt phòng thành công
 // const BookingSuccess = () => (
@@ -144,13 +145,15 @@ function App() {
                         <Route index element={<Navigate to="info" replace />} />
                         <Route path="info" element={<ProfileInfo />} />
                         <Route path="change-password" element={<ChangePassword />} />
-                    
+                        <Route path="booking-history" element={<BookingHistory />} />
                         {/* Lịch sử hóa đơn nằm trong sidebar profile */}
-                        <Route path="invoice-history" element={<BookingHistory />} /> 
+                        <Route path="invoice-history" element={<InvoiceHistory />} /> 
                     </Route>
 
                     {/* BOOKING HISTORY */}
-                    <Route path="/my-bookings" element={<BookingHistory />} />
+                    <Route element={<UserDashboardLayout />}>
+                        <Route path="/my-bookings" element={<BookingHistory />} />
+                    </Route>
 
                     {/* ADMIN */}
                     <Route

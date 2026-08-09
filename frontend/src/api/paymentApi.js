@@ -1,4 +1,3 @@
-// ================== SỬA paymentApi.js ==================
 // src/api/paymentApi.js
 import axiosInstance from './axiosInstance';
 
@@ -21,8 +20,7 @@ const paymentApi = {
     axiosInstance.post(`${BASE}/simulate/${bookingId}`)
       .then(r => r.data),
   
-  // ========== THÊM HÀM NÀY ==========
-  // Lấy chi tiết booking từ bookingId (dùng cho BookingDetail)
+  // Lấy chi tiết booking - dùng endpoint đúng
   getBookingDetail: (bookingId) =>
     axiosInstance.get(`/bookings/${bookingId}`).then(r => r.data.data),
 };
@@ -32,7 +30,7 @@ export const {
   getPaymentStatus, 
   confirmPayment, 
   simulatePayment, 
-  getBookingDetail   // THÊM DÒNG NÀY
+  getBookingDetail
 } = paymentApi;
 
 export default paymentApi;

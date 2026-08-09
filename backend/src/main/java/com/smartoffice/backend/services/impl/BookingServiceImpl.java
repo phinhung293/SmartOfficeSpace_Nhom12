@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     // Thời gian giữ chỗ: 5 phút
-    private static final int LOCK_MINUTES = 5;
+    private static final int LOCK_MINUTES = 10;
 
     private final BookingRepository bookingRepository;
     private final BookingStatusRepository bookingStatusRepository;
