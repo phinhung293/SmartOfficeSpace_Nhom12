@@ -14,6 +14,11 @@ import okhttp3.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,19 +41,34 @@ public class SepayServiceImpl implements SepayService {
                     + booking.getBookingStatus().getStatusName());
         }
 
-        // MOCK RESPONSE cho test (vì SePay sandbox chưa hoạt động)
-        SepayCreateQRResponse mockResponse = new SepayCreateQRResponse();
-        mockResponse.setSuccess(true);
-        mockResponse.setMessage("Mock QR created - SePay sandbox unavailable");
+        BigDecimal actualAmount = getActualTransferAmount(booking);
+        String content = buildTransferContent(booking);
 
-        SepayCreateQRResponse.QRData mockData = new SepayCreateQRResponse.QRData();
-        mockData.setQrCode("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WS" + booking.getBookingCode());
-        mockData.setOrderId(booking.getBookingCode());
-        mockData.setTransactionId("MOCK_" + System.currentTimeMillis());
-        mockResponse.setData(mockData);
+        String qrUrl = String.format(
+                "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%s&addInfo=%s&accountName=%s",
+                sepayConfig.getBankCode(),
+                sepayConfig.getBankAccountNumber(),
+                actualAmount.toBigInteger().toString(),
+                URLEncoder.encode(content, StandardCharsets.UTF_8),
+                URLEncoder.encode(sepayConfig.getBankAccountName(), StandardCharsets.UTF_8)
+        );
 
-        log.info("✅ Mock QR created for booking: {}", booking.getBookingCode());
-        return mockResponse;
+        SepayCreateQRResponse response = new SepayCreateQRResponse();
+        response.setSuccess(true);
+        response.setMessage(sepayConfig.isDemoMode()
+                ? "QR chuyển khoản thật (VietQR) - đang ở DEMO MODE, số tiền đã thu nhỏ x" + sepayConfig.getDemoScaleFactor()
+                : "QR chuyển khoản thật (VietQR)");
+
+        SepayCreateQRResponse.QRData data = new SepayCreateQRResponse.QRData();
+        data.setQrCode(qrUrl);
+        data.setOrderId(booking.getBookingCode());
+        data.setTransactionId(content);
+        response.setData(data);
+
+        log.info("QR thật tạo cho booking {} - số tiền thật cần chuyển: {}đ (giá gốc: {}đ, demoMode={})",
+                booking.getBookingCode(), actualAmount, booking.getTotalAmount(), sepayConfig.isDemoMode());
+
+        return response;
     }
 
     @Override
@@ -70,8 +90,8 @@ public class SepayServiceImpl implements SepayService {
                 .bankAccountNumber(sepayConfig.getBankAccountNumber())
                 .bankAccountName(sepayConfig.getBankAccountName())
                 .bankCode(sepayConfig.getBankCode())
-                .amount(booking.getTotalAmount().toString())
-                .transactionContent("WS" + booking.getBookingCode())
+                .amount(getActualTransferAmount(booking).toString())
+                .transactionContent(buildTransferContent(booking))
                 .build();
     }
 
@@ -98,7 +118,7 @@ public class SepayServiceImpl implements SepayService {
         booking.setLockedUntil(null);
         Booking saved = bookingRepository.save(booking);
 
-        log.info("✅ Payment confirmed for booking: {} - New status: {}",
+        log.info("Payment confirmed for booking: {} - New status: {}",
                 booking.getBookingCode(), saved.getBookingStatus().getStatusName());
     }
 
@@ -121,5 +141,73 @@ public class SepayServiceImpl implements SepayService {
         bookingRepository.save(booking);
 
         log.info("Payment cancelled for booking: {}", booking.getBookingCode());
+    }
+
+    @Override
+    @Transactional
+    public void handleIncomingTransaction(SepayWebhookRequest webhook) {
+        if (webhook.getTransferType() != null && !"in".equalsIgnoreCase(webhook.getTransferType())) {
+            log.info("Bỏ qua giao dịch không phải tiền vào: content={}", webhook.getContent());
+            return;
+        }
+
+        String content = webhook.getContent() == null ? "" : webhook.getContent().replaceAll("\\s+", "");
+        String bookingCode = extractBookingCode(content);
+
+        if (bookingCode == null) {
+            log.warn("Không tìm thấy bookingCode hợp lệ trong nội dung CK: '{}'", webhook.getContent());
+            return;
+        }
+
+        Booking booking = bookingRepository.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) {
+            log.warn("Webhook: không tìm thấy booking với code '{}' (raw content: '{}')", bookingCode, webhook.getContent());
+            return;
+        }
+
+        if (!"PENDING_PAYMENT".equals(booking.getBookingStatus().getStatusName())) {
+            log.info("Booking {} không còn PENDING_PAYMENT (hiện tại: {}), bỏ qua webhook.",
+                    bookingCode, booking.getBookingStatus().getStatusName());
+            return;
+        }
+
+        BigDecimal expectedAmount = getActualTransferAmount(booking);
+        BigDecimal receivedAmount = webhook.getTransferAmount() == null
+                ? BigDecimal.ZERO
+                : BigDecimal.valueOf(webhook.getTransferAmount());
+
+        if (receivedAmount.compareTo(expectedAmount) < 0) {
+            log.warn("Booking {}: số tiền nhận ({}đ) < số tiền yêu cầu ({}đ). KHÔNG tự confirm — cần đối soát thủ công.",
+                    bookingCode, receivedAmount, expectedAmount);
+            return;
+        }
+
+        confirmPayment(booking.getBookingId());
+        log.info("✅ Webhook xác nhận thanh toán THẬT cho booking {} — đã nhận {}đ (yêu cầu {}đ)",
+                bookingCode, receivedAmount, expectedAmount);
+    }
+
+    private BigDecimal getActualTransferAmount(Booking booking) {
+        BigDecimal total = booking.getTotalAmount();
+        if (sepayConfig.isDemoMode() && sepayConfig.getDemoScaleFactor() > 0) {
+            return total.divide(
+                    BigDecimal.valueOf(sepayConfig.getDemoScaleFactor()),
+                    0, RoundingMode.CEILING
+            );
+        }
+        return total;
+    }
+
+    private String buildTransferContent(Booking booking) {
+        return booking.getBookingCode().replace("-", "");
+    }
+
+    private String extractBookingCode(String content) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("WS(\\d{6})(\\d{3,})").matcher(content);
+        if (!m.find()) return null;
+        String datePart = m.group(1);
+        String idPart = m.group(2);
+        String id3 = idPart.length() > 3 ? idPart.substring(0, 3) : idPart;
+        return "WS" + datePart + "-" + id3;
     }
 }

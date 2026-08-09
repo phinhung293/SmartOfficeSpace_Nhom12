@@ -145,7 +145,7 @@ function App() {
                         <Route index element={<Navigate to="info" replace />} />
                         <Route path="info" element={<ProfileInfo />} />
                         <Route path="change-password" element={<ChangePassword />} />
-                    
+                        <Route path="booking-history" element={<BookingHistory />} />
                         {/* Lịch sử hóa đơn nằm trong sidebar profile */}
                         <Route path="invoice-history" element={<InvoiceHistory />} /> 
                     </Route>
