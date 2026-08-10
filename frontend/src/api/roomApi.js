@@ -1,27 +1,47 @@
-import axios from "axios";
+import axiosInstance from './axiosInstance';
 
-const API_URL = "http://localhost:8080/api/rooms";
-
-// Tìm kiếm / lọc phòng (POST với body filter)
+// Tìm kiếm / lọc phòng
 export const searchRooms = async (searchData) => {
-    const response = await axios.post(`${API_URL}/search`, searchData);
+    const response = await axiosInstance.post(
+        '/rooms/search',
+        searchData
+    );
+
     return response.data;
 };
 
-// Lấy tất cả phòng không filter (gọi search với body rỗng)
-export const getAllRooms = async (page = 0, size = 6, sortBy = "") => {
-    const response = await axios.post(`${API_URL}/search`, { page, size, sortBy });
+// Lấy tất cả phòng
+export const getAllRooms = async (
+    page = 0,
+    size = 6,
+    sortBy = ""
+) => {
+    const response = await axiosInstance.post(
+        '/rooms/search',
+        {
+            page,
+            size,
+            sortBy
+        }
+    );
+
     return response.data;
 };
 
 // Lấy chi tiết phòng
 export const getRoomDetail = async (roomId) => {
-    const response = await axios.get(`${API_URL}/${roomId}`);
+    const response = await axiosInstance.get(
+        `/rooms/${roomId}`
+    );
+
     return response.data;
 };
 
 // Lấy trạng thái realtime
 export const getRealtimeStatus = async (roomId) => {
-    const response = await axios.get(`${API_URL}/${roomId}/status`);
+    const response = await axiosInstance.get(
+        `/rooms/${roomId}/status`
+    );
+
     return response.data;
 };

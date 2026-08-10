@@ -1,19 +1,19 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: `${import.meta.env.VITE_API_URL}/api`,
 });
 
-// Request interceptor: Tự động gắn Token vào mỗi Request gửi đi
 axiosInstance.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
+
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
 });
 
-// Response interceptor: Xử lý lỗi 401 (token hết hạn) → redirect về login
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -22,6 +22,7 @@ axiosInstance.interceptors.response.use(
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
+
         return Promise.reject(error);
     }
 );
