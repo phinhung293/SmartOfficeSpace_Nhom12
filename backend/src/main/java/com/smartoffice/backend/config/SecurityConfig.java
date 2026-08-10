@@ -77,9 +77,11 @@ public class SecurityConfig {
         
         // Cấu hình danh sách Origins được phép truy cập
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:5173",          // Chạy Local Vite
-                "http://localhost:3000",          // Chạy Local React
-                "https://*.vercel.app"             // Cho phép tất cả domain Vercel (Deploy)
+                "http://localhost:4173",
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://*.vercel.app",
+                "https://*.onrender.com"
         ));
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
